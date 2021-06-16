@@ -1,0 +1,105 @@
+---
+title: "NHL API Vignette"
+author: "John Clements"
+date: "6/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# C
+
+```{r message=FALSE, warning=FALSE}
+# This library is useful for contacting an API.
+library(jsonlite)
+# This library is useful for manipulating dataframes.
+library(dplyr)
+```
+
+
+```{r}
+franchise <- function(team="all"){
+  ###
+  # This functions returns a dataframe with the franchise ID, first and last 
+  # season IDs, location and team name for either all teams who ever played 
+  # in the NHL. It can also return those columns for a single team if a 
+  # franchise ID or name is passed.
+  ###
+  
+  # Get the franchise data from the franchises endpoint.
+  franchiseData <- fromJSON(
+      "https://statsapi.web.nhl.com/api/v1/franchises"
+      )
+  
+  # From the dataframe, filter for the columns of interest.
+  output <- franchiseData$franchises %>%
+    select(franchiseId, firstSeasonId, lastSeasonId, locationName, teamName)
+  
+  # If team does not equal "all", check if it is a franchise ID or team name.
+  if (team != "all"){
+    
+    # If team is in the franchiseId column, subset output for just that row.
+    if (team %in% output$franchiseId){
+      output <- output %>%
+        filter(franchiseId == team)
+    }
+    # If team is in the teamName column, subset output for just that row.
+    else if (team %in% output$teamName){
+      output <- output %>%
+        filter(teamName == team)
+    }
+    # Otherwise, warn the user and return the entire dataframe.
+    else {
+      message <- paste("WARNING: Argument for team was not found in either",
+                       "the teamName or franchiseID columns. Returning all",
+                       "franchises.")
+      warning(message)
+    }
+  }
+  # Do nothing if the team value equals "all".
+  else {
+    
+  }
+  
+  # Return the output dataframe.
+  return(output)
+}
+
+```
+
+```{r}
+
+```
+
+```{r}
+fromJSON(
+      "https://statsapi.web.nhl.com/api/v1/franchises/2"
+      )$franchises 
+```
+
+
+
+```{r}
+y = franchiseData$franchises
+```
+
+```{r}
+"Canadiens" %in% y$teamName
+```
+```{r}
+3 %in% y$franchiseId
+```
+
+
+
+
+
+
+
+
+
+
+
+
