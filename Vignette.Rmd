@@ -29,19 +29,18 @@ library(dplyr)
 ```{r}
 franchise <- function(team="all"){
   ###
-  # This functions returns a dataframe with the franchise ID, first and last 
-  # season IDs, location and team name for either all teams who ever played 
+  # This functions returns a dataframe with data on all teams who ever played 
   # in the NHL. It can also return those columns for a single team if a 
   # franchise ID or name is passed.
   ###
   
   # Get the franchise data from the franchises endpoint.
-  franchiseData <- fromJSON(
+  outputAPI <- fromJSON(
       "https://records.nhl.com/site/api/franchise"
       )
   
   # Select only the dataframe.
-  output <- franchiseData$data
+  output <- outputAPI$data
   
   # If team does not equal "all", check if it is a franchise ID or team name.
   if (team != "all"){
@@ -58,10 +57,10 @@ franchise <- function(team="all"){
     }
     # Otherwise, warn the user and return the entire dataframe.
     else {
-      message <- paste("WARNING: Argument for team was not found in either",
-                       "the fullName or id columns. Returning all",
-                       "franchises.")
-      warning(message)
+      message <- paste("ERROR: Argument for team was not found in either",
+                       "the fullName or id columns. Try franchise('all') to",
+                       "find the team you're looking for.")
+      stop(message)
     }
   }
   # Do nothing if the team value equals "all".
@@ -80,12 +79,12 @@ franchise <- function(team="all"){
 teamTotals <- function(team="all"){
   
   # Get the franchise data from the franchises endpoint.
-  franchiseData <- fromJSON(
+  outputAPI <- fromJSON(
     "https://records.nhl.com/site/api/franchise-team-totals"
     )
   
   # Select only the dataframe.
-  output <- franchiseData$data
+  output <- outputAPI$data
   
   # If team does not equal "all", check if it is a team ID or team name.
   if (team != "all"){
@@ -118,11 +117,66 @@ teamTotals <- function(team="all"){
 }
 ```
 
-## `seasonsRecords`
+## `findFranchiseId`
+
+This is a helper function to look up the franchise id for a full team name e.g. "Boston Bruins" because I am too lazy to hard code it.
 
 ```{r}
-baseURL <- "https://records.nhl.com/site/api/franchise-season-records?cayenneExp=franchiseId="
+findFranchiseId <- function(teamName){
+  ###
+  # This function looks up the franchise id for a full team name 
+  # e.g. "Boston Bruins".
+  ###
+  
+  # Call the franchise function with the team name.
+  teamId <- franchise(teamName)
+  
+  # Return only the id number.
+  return(teamId$id)
+}
+```
 
+
+## `seasonRecords`
+
+```{r}
+seasonRecords <- function(team){
+  ###
+  # This functions returns a dataframe with the franchise ID, first and last 
+  # season IDs, location and team name for either all teams who ever played 
+  # in the NHL. It can also return those columns for a single team if a 
+  # franchise ID or name is passed.
+  ###
+  
+  # If team is a "character" type, try to look up the team id.
+  if (typeof(team) == "character"){
+    teamId = findFranchiseId(team)
+  }
+  # If team is an integer, set teamId equal to team.
+  else if ((typeof(team) == "double") & (team %% 1 == 0)){
+    teamId = team
+  }
+  # Otherwise, throw an error.
+  else {
+    message <- paste("Please pass a team id (integer) or a full team name",
+                     "e.g. 'Boston Bruins'.")
+    stop(message)
+  }
+  
+  # Set the base url, endpoint, and combine them with teamId for the full url.
+  baseURL <- "https://records.nhl.com/site/api/"
+  endpoint <- "franchise-season-records?cayenneExp=franchiseId="
+  fullURL <- paste0(baseURL, endpoint, teamId)
+  
+  # Get the API output.
+  outputAPI <- fromJSON(fullURL)
+  # Select only the data.
+  output <- outputAPI$data
+  
+  # Return the output from the request.
+  return(output)
+}
+```
 
 
 
