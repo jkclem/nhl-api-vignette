@@ -13,9 +13,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Requirements
 
-To use these functions, you need to install and load the [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/) and [`dplyr`](https://cran.r-project.org/web/packages/dplyr/) packages.
+To use the functions for interacting with the [NHL API](https://gitlab.com/dword4/nhlapi/-/blob/master/records-api.md), you need to install and load:
 
-```{r message=FALSE, warning=FALSE}
+- [`dplyr`](https://cran.r-project.org/web/packages/dplyr/): `data.frame` manipulation
+- [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/): API interaction
+
+Additionally, I used the following packages for this analysis:
+
+- [`ggplot2`](https://ggplot2.tidyverse.org/): data visualization
+
+```{r include=FALSE}
 # This library is useful for contacting an API.
 library(jsonlite)
 # This library is useful for manipulating dataframes.
@@ -293,7 +300,6 @@ franchiseDetail <- function(team){
   return(output)
 }
 ```
-
 
 
 
