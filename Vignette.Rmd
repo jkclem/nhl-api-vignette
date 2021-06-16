@@ -2,14 +2,18 @@
 title: "NHL API Vignette"
 author: "John Clements"
 date: "6/15/2021"
-output: html_document
+output: 
+  html_document:
+    toc: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# C
+# Requirements
+
+To use these functions, you need to install and load the [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/) and [`dplyr`](https://cran.r-project.org/web/packages/dplyr/) packages.
 
 ```{r message=FALSE, warning=FALSE}
 # This library is useful for contacting an API.
@@ -18,6 +22,9 @@ library(jsonlite)
 library(dplyr)
 ```
 
+# Functions
+
+## `franchise`
 
 ```{r}
 franchise <- function(team="all"){
@@ -30,14 +37,57 @@ franchise <- function(team="all"){
   
   # Get the franchise data from the franchises endpoint.
   franchiseData <- fromJSON(
-      "https://statsapi.web.nhl.com/api/v1/franchises"
+      "https://records.nhl.com/site/api/franchise"
       )
   
-  # From the dataframe, filter for the columns of interest.
-  output <- franchiseData$franchises %>%
-    select(franchiseId, firstSeasonId, lastSeasonId, locationName, teamName)
+  # Select only the dataframe.
+  output <- franchiseData$data
   
   # If team does not equal "all", check if it is a franchise ID or team name.
+  if (team != "all"){
+    
+    # If team is in the id column, subset output for just that row.
+    if (team %in% output$id){
+      output <- output %>%
+        filter(id == team)
+    }
+    # If team is in the fullName column, subset output for just that row.
+    else if (team %in% output$fullName){
+      output <- output %>%
+        filter(fullName == team)
+    }
+    # Otherwise, warn the user and return the entire dataframe.
+    else {
+      message <- paste("WARNING: Argument for team was not found in either",
+                       "the fullName or id columns. Returning all",
+                       "franchises.")
+      warning(message)
+    }
+  }
+  # Do nothing if the team value equals "all".
+  else {
+    
+  }
+  
+  # Return the output dataframe.
+  return(output)
+}
+```
+
+## `teamTotals`
+
+```{r}
+teamTotals <- function(team="all"){
+  
+  # Get the franchise data from the franchises endpoint.
+  franchiseData <- fromJSON(
+    "https://records.nhl.com/site/api/franchise-team-totals"
+    )
+  
+  # Select only the dataframe.
+  output <- franchiseData$data
+  
+  # If team does not equal "all", check if it is a team ID or team name.
   if (team != "all"){
     
     # If team is in the franchiseId column, subset output for just that row.
@@ -53,7 +103,7 @@ franchise <- function(team="all"){
     # Otherwise, warn the user and return the entire dataframe.
     else {
       message <- paste("WARNING: Argument for team was not found in either",
-                       "the teamName or franchiseID columns. Returning all",
+                       "the teamName or franchiseId columns. Returning all",
                        "franchises.")
       warning(message)
     }
@@ -66,31 +116,14 @@ franchise <- function(team="all"){
   # Return the output dataframe.
   return(output)
 }
-
 ```
+
+## `seasonsRecords`
 
 ```{r}
-
-```
-
-```{r}
-fromJSON(
-      "https://statsapi.web.nhl.com/api/v1/franchises/2"
-      )$franchises 
-```
+baseURL <- "https://records.nhl.com/site/api/franchise-season-records?cayenneExp=franchiseId="
 
 
-
-```{r}
-y = franchiseData$franchises
-```
-
-```{r}
-"Canadiens" %in% y$teamName
-```
-```{r}
-3 %in% y$franchiseId
-```
 
 
 
