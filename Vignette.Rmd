@@ -301,11 +301,105 @@ franchiseDetail <- function(team){
 }
 ```
 
+## `seasonStats`
+
+```{r}
+seasonStats <- function(team="all", raw=FALSE){
+  
+  # If raw is not a valid input, throw an error.
+  if ((raw != TRUE) & (raw != FALSE)){
+    stop("raw must equal TRUE or FALSE!")
+  }
+  # Otherwise do nothing.
+  else {
+    
+  }
+  
+  # If team equals "all" the spot where ID goes in the URL will be blank.
+  if (team == "all"){
+    teamId = ""
+  }
+  # If team is a "character" type, try to look up the team id.
+  else if (typeof(team) == "character"){
+    teamId = findFranchiseId(team)
+  }
+  # If team is an integer, set teamId equal to team.
+  else if ((typeof(team) == "double") & (team %% 1 == 0)){
+    teamId = team
+  }
+  # Otherwise, throw an error.
+  else {
+    message <- paste("Please pass a team id (integer) or a full team name",
+                     "e.g. 'Boston Bruins'.")
+    stop(message)
+  }
+  
+  # Paste together the URL.
+  baseURL <- "https://statsapi.web.nhl.com/api/v1/teams/"
+  modifier <- "?expand=team.stats"
+  fullURL <- paste0(baseURL, teamId, modifier)
+  # Get the data from the endpoint.
+  outputAPI <- fromJSON(fullURL, flatten=TRUE)
+  
+  if (team != "all"){
+    
+    # If raw is FALSE, give back only the stats.
+    if (raw == FALSE){
+      teamStats <- outputAPI$teams$teamStats[[1]]$splits[[1]][1,]
+    }
+    # If the user wants the raw API output, give it to them.
+    else {
+      teamStats <- outputAPI$teams
+    }
+  }
+  else {
+    
+    # If raw is FALSE, give back only the stats.
+    if (raw == FALSE){
+      # Get the teamStats list where each element is a data.frame.
+      output <- outputAPI$teams$teamStats
+      # Count the number of teams. The last element is NULL.
+      num_teams = length(output) - 1
+      # Make a variable to hold just the stats, starting with the first team.
+      teamStats <- output[[1]]$splits[[1]][1,]
+      
+      # Loop through the 2nd to the last team in the list.
+      for (i in seq(2, num_teams)){
+        # Select only the first row of the seasons stats for the team.
+        stats <- output[[i]]$splits[[1]][1,]
+        # Add the row to teamStats.
+        teamStats <- rbind(teamStats, stats)
+        }
+    }
+    # If the user wants the raw API output, give it to them.
+    else {
+      teamStats <- outputAPI$teams
+    }
+  }
+  # Return team stats.
+  return(teamStats)
+}
+```
 
 
+```{r}
+b$teams$teamStats[[1]]$splits[[1]]
+```
 
 
+```{r}
 
+
+teams
+```
+
+```{r}
+
+```
+
+```{r}
+franchise()
+```
 
 
 
