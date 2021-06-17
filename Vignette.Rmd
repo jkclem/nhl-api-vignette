@@ -55,7 +55,7 @@ franchise <- function(team="all"){
     # If team is in the id column, subset output for just that row.
     if (team %in% output$id){
       output <- output %>%
-        filter(id == team)
+        filter(mostRecentTeamId == team)
     }
     # If team is in the fullName column, subset output for just that row.
     else if (team %in% output$fullName){
@@ -101,9 +101,9 @@ teamTotals <- function(team="all"){
   if (team != "all"){
     
     # If team is in the franchiseId column, subset output for just that row.
-    if (team %in% output$franchiseId){
+    if (team %in% output$teamId){
       output <- output %>%
-        filter(franchiseId == team)
+        filter(teamId == team)
     }
     # If team is in the teamName column, subset output for just that row.
     else if (team %in% output$teamName){
@@ -128,12 +128,12 @@ teamTotals <- function(team="all"){
 }
 ```
 
-## `findFranchiseId`
+## `findTeamId`
 
 This is a helper function to look up the most recent team id for a full team name e.g. "Boston Bruins" because I am too lazy to hard code it.
 
 ```{r}
-findFranchiseId <- function(teamName){
+findTeamId <- function(teamName){
   ###
   # This helper function looks up the franchise id for a full team name 
   # e.g. "Boston Bruins".
@@ -147,6 +147,24 @@ findFranchiseId <- function(teamName){
 }
 ```
 
+## `findFranchiseId`
+
+This is a helper function to look up the franchise id for a full team name e.g. "Boston Bruins" because I am too lazy to hard code it.
+
+```{r}
+findFranchiseId <- function(teamName){
+  ###
+  # This helper function looks up the franchise id for a full team name 
+  # e.g. "Boston Bruins".
+  ###
+  
+  # Call the franchise function with the team name.
+  teamId <- franchise(teamName)
+  
+  # Return only the most recent team id number.
+  return(teamId$id)
+}
+```
 
 ## `seasonRecords`
 
@@ -273,7 +291,7 @@ franchiseDetail <- function(team){
   
   # If team is a "character" type, try to look up the team id.
   if (typeof(team) == "character"){
-    teamId = findFranchiseId(team)
+    teamId = findTeamId(team)
   }
   # If team is an integer, set teamId equal to team.
   else if ((typeof(team) == "double") & (team %% 1 == 0)){
@@ -321,7 +339,7 @@ seasonStats <- function(team="all", raw=FALSE){
   }
   # If team is a "character" type, try to look up the team id.
   else if (typeof(team) == "character"){
-    teamId = findFranchiseId(team)
+    teamId = findTeamId(team)
   }
   # If team is an integer, set teamId equal to team.
   else if ((typeof(team) == "double") & (team %% 1 == 0)){
@@ -381,24 +399,36 @@ seasonStats <- function(team="all", raw=FALSE){
 }
 ```
 
+## `nhlAPI`
 
 ```{r}
-b$teams$teamStats[[1]]$splits[[1]]
-```
-
-
-```{r}
-
-
-teams
-```
-
-```{r}
-
-```
-
-```{r}
-franchise()
+nhlAPI <- function(func, ...){
+  if (func == "franchise"){
+    output <- franchise(...)
+  }
+  else if (func == "teamTotals"){
+    output <- teamTotals(...)
+  }
+  else if (func == "seasonRecords"){
+    output <- seasonRecords(...)
+  }
+  else if (func == "goalieRecords"){
+    output <- goalieRecords(...)
+  }
+  else if (func == "skaterRecords"){
+    output <- skaterRecords(...)
+  }
+  else if (func == "franchiseDetail"){
+    output <- franchiseDetail(...)
+  }
+  else if (func == "seasonStats"){
+    output <- seasonStats(...)
+  }
+  else {
+    stop("Argument for func is not valid!")
+  }
+  return(output)
+}
 ```
 
 
