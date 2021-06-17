@@ -22,11 +22,15 @@ Additionally, I used the following packages for this analysis:
 
 - [`ggplot2`](https://ggplot2.tidyverse.org/): data visualization
 
+I didn't pull in the entire [`tidyverse`](https://www.tidyverse.org/) to avoid pulling in unnecessary functions.
+
 ```{r include=FALSE}
 # This library is useful for contacting an API.
 library(jsonlite)
 # This library is useful for manipulating dataframes.
 library(dplyr)
+# Useful for data visualization.
+library(ggplot2)
 ```
 
 # Functions
@@ -323,6 +327,11 @@ franchiseDetail <- function(team){
 
 ```{r}
 seasonStats <- function(team="all", raw=FALSE){
+  ###
+  # Returns the current seasons stats for all teams or just one. If raw is 
+  # FALSE, it returns only the stats. If raw is TRUE, it just returns the API
+  # output for the user to parse.
+  ###
   
   # If raw is not a valid input, throw an error.
   if ((raw != TRUE) & (raw != FALSE)){
@@ -403,6 +412,14 @@ seasonStats <- function(team="all", raw=FALSE){
 
 ```{r}
 nhlAPI <- function(func, ...){
+  ###
+  # This function is a wrapper for the other functions. It takes in the name
+  # of the function to use as a character and any additional arguments for that
+  # function.
+  ###
+  
+  # Find and call the appropriate function.
+  
   if (func == "franchise"){
     output <- franchise(...)
   }
@@ -430,6 +447,51 @@ nhlAPI <- function(func, ...){
   return(output)
 }
 ```
+
+# Data Exploration
+
+```{r}
+currentSeason <- nhlAPI("seasonStats")
+```
+
+
+
+
+```{r}
+# Add a column for the win/loss ratio (wins per loss)
+currentSeason <- currentSeason %>%
+  mutate(win.loss.ratio = as.numeric(stat.wins) / as.numeric(stat.losses))
+
+# Create a ggplot object to plot shooting pct vs. shots per game.
+plot <- ggplot(currentSeason, 
+               aes(as.numeric(stat.shotsPerGame),
+                   as.numeric(stat.shootingPctg),
+                   color=win.loss.ratio))
+# Make a scatter plot.
+plot <- plot + geom_point(size=4, alpha=0.75)
+# Adjust the color gradient to go from blue at the low end, to red at the high
+# end of win.loss.ratio
+plot <- plot + scale_color_gradient(low="blue", high="red",
+                                    name="Wins / Losses")
+# Add an x-axis label.
+plot <- plot + scale_x_continuous("Shots per Game")
+# Add an y-axis label.
+plot <- plot + scale_y_continuous("Shooting Percentage")
+# Add a title.
+plot <- plot + ggtitle("Shooting Percentage vs. Shots per Game")
+
+plot
+```
+
+
+
+
+
+
+
+
+
+
 
 
 
