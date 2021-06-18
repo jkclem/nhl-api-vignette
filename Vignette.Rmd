@@ -5,6 +5,7 @@ date: "6/15/2021"
 output: 
   html_document:
     toc: true
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
@@ -18,22 +19,45 @@ To use the functions for interacting with the [NHL API](https://gitlab.com/dword
 - [`dplyr`](https://cran.r-project.org/web/packages/dplyr/): `data.frame` manipulation
 - [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/): API interaction
 
-Additionally, I used the following packages for this analysis:
+Additionally, I used the following packages for the data exploration:
 
 - [`ggplot2`](https://ggplot2.tidyverse.org/): data visualization
+- [`cowplot`](https://cran.r-project.org/web/packages/cowplot/index.html): extra functionality for `ggplot2`
 
 I didn't pull in the entire [`tidyverse`](https://www.tidyverse.org/) to avoid pulling in unnecessary functions.
 
-```{r include=FALSE}
-# This library is useful for contacting an API.
+```{r}
 library(jsonlite)
-# This library is useful for manipulating dataframes.
 library(dplyr)
-# Useful for data visualization.
 library(ggplot2)
+library(cowplot)
 ```
 
 # Functions
+
+## `convertToNumeric`
+
+This a helper function used to convert columns that contain numeric data, but store `character` values, to numeric columns.
+
+```{r}
+convertToNumeric <- function(vec){
+  ###
+  # This function will convert the input vector to a numeric vector if it is 
+  # able to. Otherwise, it just returns the vector.
+  ###
+  
+  # If any of the values in vec return NA when trying to convert to numeric,
+  # just return vec as the output.
+  if (any(is.na(suppressWarnings(as.numeric(vec))) == TRUE)){
+    output <- vec
+  }
+  # Otherwise, convert vec to a numeric vector.
+  else {
+    output <- as.numeric(vec)
+  }
+  return(output)
+}
+```
 
 ## `franchise`
 
@@ -78,6 +102,9 @@ franchise <- function(team="all"){
   else {
     
   }
+  
+  # Convert any columns that should be numeric to numeric.
+  output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
   # Return the output dataframe.
   return(output)
@@ -126,6 +153,9 @@ teamTotals <- function(team="all"){
   else {
     
   }
+  
+  # Convert any columns that should be numeric to numeric.
+  output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
   # Return the output dataframe.
   return(output)
@@ -204,6 +234,9 @@ seasonRecords <- function(team){
   # Select only the data.
   output <- outputAPI$data
   
+  # Convert any columns that should be numeric to numeric.
+  output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
+  
   # Return the output from the request.
   return(output)
 }
@@ -241,6 +274,9 @@ goalieRecords <- function(team){
   outputAPI <- fromJSON(fullURL)
   # Select only the data.
   output <- outputAPI$data
+  
+  # Convert any columns that should be numeric to numeric.
+  output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
   # Return the output from the request.
   return(output)
@@ -280,6 +316,9 @@ skaterRecords <- function(team){
   # Select only the data.
   output <- outputAPI$data
   
+  # Convert any columns that should be numeric to numeric.
+  output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
+  
   # Return the output from the request.
   return(output)
 }
@@ -317,6 +356,9 @@ franchiseDetail <- function(team){
   outputAPI <- fromJSON(fullURL)
   # Select only the data.
   output <- outputAPI$data
+  
+  # Convert any columns that should be numeric to numeric.
+  output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
   # Return the output from the request.
   return(output)
@@ -373,6 +415,9 @@ seasonStats <- function(team="all", raw=FALSE){
     # If raw is FALSE, give back only the stats.
     if (raw == FALSE){
       teamStats <- outputAPI$teams$teamStats[[1]]$splits[[1]][1,]
+      # Convert any columns that should be numeric to numeric.
+      teamStats <- suppressMessages(as.data.frame(lapply(teamStats,
+                                                         convertToNumeric)))
     }
     # If the user wants the raw API output, give it to them.
     else {
@@ -396,13 +441,19 @@ seasonStats <- function(team="all", raw=FALSE){
         stats <- output[[i]]$splits[[1]][1,]
         # Add the row to teamStats.
         teamStats <- rbind(teamStats, stats)
-        }
+      }
+    # Convert any columns that should be numeric to numeric.
+    teamStats <- suppressMessages(as.data.frame(lapply(teamStats,
+                                                       convertToNumeric)))
     }
     # If the user wants the raw API output, give it to them.
     else {
       teamStats <- outputAPI$teams
     }
   }
+  
+  
+  
   # Return team stats.
   return(teamStats)
 }
@@ -451,42 +502,83 @@ nhlAPI <- function(func, ...){
 # Data Exploration
 
 ```{r}
+# Get the current season stats for all of the teams in the NHL.
 currentSeason <- nhlAPI("seasonStats")
+
+# Add a column for the win/loss ratio (wins per loss)
+currentSeason <- currentSeason %>%
+  mutate(win.loss.ratio = stat.wins / stat.losses)
 ```
-
-
 
 
 ```{r}
-# Add a column for the win/loss ratio (wins per loss)
-currentSeason <- currentSeason %>%
-  mutate(win.loss.ratio = as.numeric(stat.wins) / as.numeric(stat.losses))
-
 # Create a ggplot object to plot shooting pct vs. shots per game.
-plot <- ggplot(currentSeason, 
-               aes(as.numeric(stat.shotsPerGame),
-                   as.numeric(stat.shootingPctg),
+plot1 <- ggplot(currentSeason, 
+               aes(stat.shotsPerGame,
+                   stat.shootingPctg,
                    color=win.loss.ratio))
 # Make a scatter plot.
-plot <- plot + geom_point(size=4, alpha=0.75)
+plot1 <- plot1 + geom_point(size=4, alpha=0.75)
 # Adjust the color gradient to go from blue at the low end, to red at the high
 # end of win.loss.ratio
-plot <- plot + scale_color_gradient(low="blue", high="red",
+plot1 <- plot1 + scale_color_gradient(low="blue", high="red",
                                     name="Wins / Losses")
 # Add an x-axis label.
-plot <- plot + scale_x_continuous("Shots per Game")
+plot1 <- plot1 + scale_x_continuous("Shots per Game")
 # Add an y-axis label.
-plot <- plot + scale_y_continuous("Shooting Percentage")
+plot1 <- plot1 + scale_y_continuous("Shooting Percentage")
 # Add a title.
-plot <- plot + ggtitle("Shooting Percentage vs. Shots per Game")
+plot1 <- plot1 + ggtitle("Shooting Percentage vs. Shots per Game")
 
-plot
+plot1
 ```
 
+```{r}
+# Create a ggplot object to plot shooting pct vs. shots per game.
+plot2 <- ggplot(currentSeason, 
+               aes(stat.shotsPerGame,
+                   win.loss.ratio,
+                   color=win.loss.ratio))
+# Make a scatter plot.
+plot2 <- plot2 + geom_point(size=4, alpha=0.75)
+# Adjust the color gradient to go from blue at the low end, to red at the high
+# end of win.loss.ratio
+plot2 <- plot2 + scale_color_gradient(low="blue", high="red")
+# Remove the legend.
+plot2 <- plot2 + theme(legend.position="none")
+# Add a regression line.
+plot2 <- plot2 + geom_smooth(method=lm, formula=y~x, color="black")
+# Add an x-axis label.
+plot2 <- plot2 + scale_x_continuous("Shots per Game")
+# Add an y-axis label.
+plot2 <- plot2 + scale_y_continuous("Wins-Loss Ratio")
+# Add a title.
+plot2 <- plot2 + ggtitle("Wins/Losses vs. Shots per Game")
 
+# Create a ggplot object to plot shooting pct vs. shots per game.
+plot3 <- ggplot(currentSeason, 
+               aes(stat.shootingPctg,
+                   win.loss.ratio,
+                   color=win.loss.ratio))
+# Make a scatter plot.
+plot3 <- plot3 + geom_point(size=4, alpha=0.75)
+# Adjust the color gradient to go from blue at the low end, to red at the high
+# end of win.loss.ratio
+plot3 <- plot3 + scale_color_gradient(low="blue", high="red")
+# Remove the legend.
+plot3 <- plot3 + theme(legend.position="none")
+# Add a regression line.
+plot3 <- plot3 + geom_smooth(method=lm, formula=y~x, color="black")
+# Add an x-axis label.
+plot3 <- plot3 + scale_x_continuous("Shooting Percentage")
+# Add an y-axis label.
+plot3 <- plot3 + scale_y_continuous("Wins-Loss Ratio")
+# Add a title.
+plot3 <- plot3 + ggtitle("Wins/Losses vs. Shooting Perc.")
 
-
-
+# Plot them both together.
+plot_grid(plot2, plot3, ncol=2)
+```
 
 
 
