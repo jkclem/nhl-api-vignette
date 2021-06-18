@@ -616,27 +616,101 @@ plot3 <- plot3 + ggtitle("Shooting Percentage vs. Shots per Game")
 plot3
 ```
 
-Now let's look at some total season stats. I called `nhlAPI("teamTotals")` to get the total stats for a team's history and filtered for active teams and regular season games only.
+Now let's look at some total season stats. I called `nhlAPI("teamTotals")`.
 
 ```{r}
 # Get some stats for the total history of a team.
 teamTotalStats <- nhlAPI("teamTotals")
+```
 
-# Subset for the regular season stats for active teams.
-regSeasonStats <- teamTotalStats %>%
-  filter(is.na(lastSeasonId) & gameTypeId == 2)
+First, let's compare the number of inactive vs. active teams. There are 26 inactive and 31 active teams.
+
+```{r}
+teamTotalStats %>%
+  filter(gameTypeId == 2) %>%
+  mutate(currentlyActive = ifelse(is.na(lastSeasonId), "Yes", "No")) %>%
+  ggplot(aes(currentlyActive, 
+             fill=currentlyActive, color=currentlyActive)) +
+    geom_bar() +
+    scale_x_discrete("Currently Active") + 
+    ggtitle("Count of Inactive vs. Active Teams") + 
+    theme(legend.position="none")
+    
+```
+I'm only interested in active teams, so let's subset for them.
+
+```{r}
+teamTotalStats <- teamTotalStats %>%
+  mutate(totalSeasons = ifelse(
+    is.na(lastSeasonId), 
+    2020 - as.numeric(substr(as.character(firstSeasonId), 1, 4)),
+    as.numeric(substr(as.character(lastSeasonId), 1, 4)) 
+               - as.numeric(substr(as.character(firstSeasonId), 1, 4))))
 ```
 
 
-Not all the teams have been around for the same length of time and I want to adjust some stats, say total wins, by the length of time a team has been in the NHL. This way I can compare teams on the same basis.
+```{r}
+# Subset for the regular season stats for active teams.
+#teamTotalStats <- teamTotalStats %>%
+#filter(is.na(lastSeasonId))
+```
+
+
+Not all the teams have been around for the same length of time and I want to adjust some stats, say total penalty minutes, by the length of time a team has been in the NHL. This way I can compare teams on the same basis.
 
 To make this column, I had to convert the `firstSeasonId` column to a character, grab the first 4 characters to get the first season starting year and subtract that from 2020.
 
 ```{r}
-regSeasonStats %>%
+teamTotalStats <- teamTotalStats %>%
+  # Add a column for the number of seasons in the NHL.
   mutate(
     seasonsInNHL = 2020 - as.numeric(substr(as.character(firstSeasonId), 1, 4))
     )
 
+teamTotalStats <- teamTotalStats %>%
+  # Calculate the penalty minutes per season.
+  mutate(penaltyMinutesPerSeason = penaltyMinutes / seasonsInNHL)
+
+teamTotalStats <- teamTotalStats %>%
+  # Calculate the penalty minutes per game.
+  mutate(penaltyMinutesPerGame = penaltyMinutes / gamesPlayed)
+
+teamTotalStats <- teamTotalStats %>%
+  # Add a column for game type.
+  mutate(gameType = ifelse(gameTypeId == 2, "Regular Season", "Playoffs"))
 ```
+
+
+```{r}
+plot4 <- ggplot(teamTotalStats, 
+               aes(gameType,
+                   penaltyMinutesPerGame,
+                   color=gameType))
+plot4 <- plot4 + geom_boxplot() + geom_jitter()
+plot4 <- plot4 + scale_x_discrete("Game Type")
+plot4 <- plot4 + scale_y_discrete("Penalty Minutes per Game")
+plot4 <- plot4 + ggtitle("Penalty Minutes per Game by Game Type")
+plot4 <- plot4 + theme(legend.position = "none")
+
+plot4
+```
+
+```{r}
+ggplot(teamTotalStats,aes(penaltyMinutesPerGame)) + 
+    geom_histogram(data=subset(teamTotalStats,gameType == 'Regular Season'),
+                   bins=15, fill = "blue", alpha = 0.2) +
+    geom_histogram(data=subset(teamTotalStats,gameType == 'Playoffs'),
+                   bins=15, fill = "red", alpha = 0.2) + 
+    scale_x_continuous("Penalty Minutes per Game") + 
+    scale_y_continuous("Count")
+```
+
+
+
+
+
+
+
+
+
 
