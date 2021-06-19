@@ -24,6 +24,8 @@ Additionally, I used the following packages for the data exploration:
 - [`cowplot`](https://cran.r-project.org/web/packages/cowplot/index.html): extra functionality for `ggplot2`
 - [`imager`](https://cran.r-project.org/web/packages/imager/): loading in an images
 - [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html): displaying tables and dataframes
+- [`broom`](https://cran.r-project.org/web/packages/broom/vignettes/broom.html):
+I used it for tidying up a regression output
 
 I didn't pull in the entire  to avoid pulling in unnecessary functions.
 
@@ -32,6 +34,7 @@ library(tidyverse)
 library(jsonlite)
 library(cowplot)
 library(imager)
+library(broom)
 ```
 
 # Functions
@@ -525,15 +528,15 @@ First, let's pull current season stats for all teams by calling `nhlAPI("seasonS
 currentSeason <- nhlAPI("seasonStats")
 ```
 
-Two variables of interest to me are shots per game and shooting percentage. I'm interested in how these two stats relate to a team's win-loss ratio. This variable doesn't exist, so I need to calculate it. The formula is $\text{win-loss-ratio} = \frac{wins}{losses}$. A win-loss-ratio of 1 means a team has an even record. Less than one is a losing record and more than 1 is a winning record.
+Two variables of interest to me are shots per game and shooting percentage. I'm interested in how these two stats relate to a team's win percentage. This variable doesn't exist, so I need to calculate it. The formula is $\text{Win Percentage} = \frac{\text{Wins}}{\text{Games Played}}$. 
 
 ```{r}
-# Add a column for the win/loss ratio (wins per loss)
+# Add a column for the win percentage.
 currentSeason <- currentSeason %>%
   mutate(win.percentage = stat.wins / stat.gamesPlayed)
 ```
 
-My guess is these two are positively related to the win-to-loss ratio. A high shooting percentage means you are fairly likely to score when you shoot. A high number of shots per game likely means you are controlling the puck more than the other team and you have more scoring opportunities, unless you're taking wild shots. Plus, I think there is a quote from some hockey player about taking shots.
+My guess is these two are positively related to the win percentage. A high shooting percentage means you are fairly likely to score when you shoot. A high number of shots per game likely means you are controlling the puck more than the other team and you have more scoring opportunities, unless you're taking wild shots. Plus, I think there is a quote from some hockey player about taking shots.
 
 ```{r}
 # Read in the image.
@@ -542,139 +545,155 @@ img <- load.image("./images/Wayne Gretzky Quote.jpg")
 plot(img, axes=0)
 ```
 
-Below I plotted the win-loss ratio against shots per game and shooting percentage. I added a regression line as well. As expected, both are positively related to the win-loss-ratio, although there appears to be some [heteroskedasticity](https://en.wikipedia.org/wiki/Heteroscedasticity) in the plot on the right.
+Below I plotted the win percentage against shots per game and shooting percentage. I added a regression line as well. As expected, both are positively related to the win percentage, although there appears to be some [heteroskedasticity](https://en.wikipedia.org/wiki/Heteroscedasticity) in the plot on the right.
 
 ```{r}
-# Create a ggplot object to plot shooting pct vs. shots per game.
-plot1 <- ggplot(currentSeason, 
-               aes(stat.shotsPerGame,
-                   win.percentage,
-                   color=win.percentage))
-# Make a scatter plot.
-plot1 <- plot1 + geom_point(size=4, alpha=0.75)
-# Adjust the color gradient to go from blue at the low end, to red at the high
-# end of win.percentage
-plot1 <- plot1 + scale_color_gradient(low="blue", high="red")
-# Remove the legend.
-plot1 <- plot1 + theme(legend.position="none")
-# Add a regression line.
-plot1 <- plot1 + geom_smooth(method=lm, formula=y~x, color="black")
-# Add an x-axis label.
-plot1 <- plot1 + scale_x_continuous("Shots per Game")
-# Add an y-axis label.
-plot1 <- plot1 + scale_y_continuous("Wins-Loss Ratio")
-# Add a title.
-plot1 <- plot1 + ggtitle("Wins/Losses vs. Shots per Game")
+# Create a scatter plot of win pct vs. shots per game.
+plot1 <- ggplot(currentSeason, aes(stat.shotsPerGame,
+                                   win.percentage,
+                                   color=win.percentage)) + 
+  geom_point(size=4, alpha=0.75) + 
+  scale_color_gradient(low="blue", high="red") + 
+  theme(legend.position="none") + 
+  geom_smooth(method=lm, formula=y~x, color="black") + 
+  scale_x_continuous("Shots per Game") + 
+  scale_y_continuous("Win Percentage") + 
+  ggtitle("Win Pct. vs. Shots per Game")
 
-# Create a ggplot object to plot shooting pct vs. shots per game.
-plot2 <- ggplot(currentSeason, 
-               aes(stat.shootingPctg,
-                   win.percentage,
-                   color=win.percentage))
-# Make a scatter plot.
-plot2 <- plot2 + geom_point(size=4, alpha=0.75)
-# Adjust the color gradient to go from blue at the low end, to red at the high
-# end of win.percentage
-plot2 <- plot2 + scale_color_gradient(low="blue", high="red")
-# Remove the legend.
-plot2 <- plot2 + theme(legend.position="none")
-# Add a regression line.
-plot2 <- plot2 + geom_smooth(method=lm, formula=y~x, color="black")
-# Add an x-axis label.
-plot2 <- plot2 + scale_x_continuous("Shooting Percentage")
-# Add an y-axis label.
-plot2 <- plot2 + scale_y_continuous("Wins-Loss Ratio")
-# Add a title.
-plot2 <- plot2 + ggtitle("Wins/Losses vs. Shooting Perc.")
+# Create a scatter plot of win pct vs. shooting pct.
+plot2 <- ggplot(currentSeason, aes(stat.shootingPctg,
+                                   win.percentage,
+                                   color=win.percentage)) + 
+  geom_point(size=4, alpha=0.75) + 
+  scale_color_gradient(low="blue", high="red") + 
+  theme(legend.position="none") + 
+  geom_smooth(method=lm, formula=y~x, color="black") + 
+  scale_x_continuous("Shooting Percentage") + 
+  scale_y_continuous("Win Percentage") + 
+  ggtitle("Win Pct. vs. Shooting Pct.")
 
 # Plot them both together.
 plot_grid(plot1, plot2, ncol=2)
 ```
 
-Now let's look at shooting percentage vs. shots per game. I added a color gradient for the win-loss-ratio. 
+Now let's look at shooting percentage vs. shots per game. I added a color gradient for the win percentage. 
 
 ```{r}
-# Create a ggplot object to plot shooting pct vs. shots per game.
-plot3 <- ggplot(currentSeason, 
-               aes(stat.shotsPerGame,
-                   stat.shootingPctg,
-                   color=win.percentage))
-# Make a scatter plot.
-plot3 <- plot3 + geom_point(size=4, alpha=0.75)
-# Adjust the color gradient to go from blue at the low end, to red at the high
-# end of win.percentage
-plot3 <- plot3 + scale_color_gradient(low="blue", high="red",
-                                    name="Wins / Losses")
-# Add an x-axis label.
-plot3 <- plot3 + scale_x_continuous("Shots per Game")
-# Add an y-axis label.
-plot3 <- plot3 + scale_y_continuous("Shooting Percentage")
-# Add a title.
-plot3 <- plot3 + ggtitle("Shooting Percentage vs. Shots per Game") 
+# Create a scatter plot of shooting pct vs. shots per game.
+plot3 <- ggplot(currentSeason, aes(stat.shotsPerGame,
+                                   stat.shootingPctg,
+                                   color=win.percentage)) + 
+  geom_point(size=4, alpha=0.75) + 
+  scale_color_gradient(low="blue", high="red", name="Win Pct.") + 
+  scale_x_continuous("Shots per Game") + 
+  scale_y_continuous("Shooting Percentage") + 
+  ggtitle("Shooting Pct. vs. Shots per Game") 
 
+# Show the plot.
 plot3
 ```
 
 There doesn't appear to be a clear relationship between those two variables.
 
-Now let's look at some total season stats. I called `nhlAPI("teamTotals")` to get this data.
+Now let's look at some stats for the total history of all teams. I called `nhlAPI("teamTotals")` to get this data.
 
 ```{r}
 # Get some stats for the total history of a team.
 teamTotalStats <- nhlAPI("teamTotals")
 ```
 
-First, let's compare the number of inactive vs. active teams. There are 26 inactive and 31 active teams. Almost as many teams have left the NHL than are currently still playing.
+First, let's compare the number of inactive vs. active teams.
 
 ```{r}
-table(teamTotalStats %>%
+teamStatus <- teamTotalStats %>%
+  # Filter for regular season stats.
   filter(gameTypeId == 2) %>%
+  # Create a column that tells whether a team is active or not.
   mutate(currentlyActive = ifelse(is.na(lastSeasonId), 
                                   "Active", "Inactive")) %>%
-  select(currentlyActive))
+  # Select the teamName and activity status columns.
+  select(teamName, currentlyActive)
+
+# Count the number of active and inactive teams.
+numActive <- sum(teamStatus =="Active")
+numInactive <- sum(teamStatus =="Inactive")
 ```
+
+There are `r print(numInactive)` inactive and `r print(numActive)` active teams. Almost as many teams have left the NHL than are currently still playing.
+
 Not all the teams have been around for the same length of time and I want to adjust some stats, say total penalty minutes, to be able to compare teams on the same basis. 
 
-To do this, I'm calculating the the penalty minutes per game as $\frac{\text{Total Penalty Minutes}}{\text{Total Games Played}}$. I again calculate the win-loss ratio, because I want to see how penalty minutes relate to a team's record. I'm also interested in how a game being a playoff or regular season game affects penalty minutes. I think the importance of a playoff game might cause changes in the penalty behavior.
+To do this, I'm calculating the the penalty minutes per game as $\frac{\text{Total Penalty Minutes}}{\text{Total Games Played}}$. I again calculate the win percentage as $\text{Win Percentage} = \frac{\text{Wins}}{\text{Games Played}}$, because I want to see how penalty minutes relate to a team's record. I'm also interested in how a game being a playoff or regular season game affects penalty minutes because I think the importance of a playoff game might cause changes in the penalty behavior.
+
+I also created a column, `recordType` that indicates if a team has a winning or losing record. They are classified as having a winning record if $0.5 < \frac{\text{Wins}}{\text{Games Played}}$ and a losing record if $0.5 \geq \frac{\text{Wins}}{\text{Games Played}}$.
 
 ```{r}
 teamTotalStats <- teamTotalStats %>%
-  # Calculate the penalty minutes per game.
+  # Calculate the penalty minutes per game, win percentage, a text
+  # representation of the game type, and whether a team has a losing or winning
+  # record for the game type.
   mutate(penaltyMinutesPerGame = penaltyMinutes / gamesPlayed,
          winPercentage = wins / gamesPlayed,
          gameType = ifelse(gameTypeId == 2, "Regular Season", "Playoffs"),
          recordType = ifelse(wins > losses, "Winning Record", "Losing Record"))
 ```
 
+Below is a table showing the count of active teams with losing and winning records by game type. 
+
 ```{r}
+# Filter for active teams.
 activeTeams <- teamTotalStats %>%
   filter((is.na(lastSeasonId) == TRUE))
 
+# Display a table of the game types by record types for active teams.
 knitr::kable(table(activeTeams$gameType, activeTeams$recordType),
-             caption="Counts of Franchise Record Types by Game Type for Active Franchises")
+             caption=paste("Counts of Franchise Record Types by Game Type",
+                           "for Active Franchises"))
 ```
+
+Below is the table showing for inactive teams. It's clear from these tables that the inactive teams were much worse than the teams that are still active. They probably had a difficult time bringing in an audience and selling merchandise because they were so bad. That is likely why they are no longer around. 
 
 ```{r}
+# Filter for only inactive teams.
 inactiveTeams <- teamTotalStats %>%
   filter((is.na(lastSeasonId) == FALSE))
-
+# Count the number of inactive teams using the number of teams with regular
+# season games.
 numInactiveTeams <- dim(filter(inactiveTeams, gameTypeId == 2))[1]
+# Count the number of inactive teams that made it to the playoffs, which is not
+# all of them.
 numInactiveTeamsInPlayoffs <- dim(filter(inactiveTeams, gameTypeId == 3))[1]
+# Count the number of inactive teams who did not make the playoffs.
 numDidntMakePlayoffs <- numInactiveTeams - numInactiveTeamsInPlayoffs
+# Create an index for the last row in inactive teams.
 currentEndRow <- nrow(inactiveTeams)
+# Add as many empty rows to inactiveTeams as teams not making the playoffs.
 inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs),] <- NA
-inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs), "recordType"] <- "Losing Record"
-inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs), "gameType"] <- "Playoffs"
+# Teams without playoff data do not have rows for that game type. I'm going to
+# classify them as having losing records in the playoffs.
+inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs), 
+              "recordType"] <- "Losing Record"
+# To make the table work, I need to make the gameType of these rows "Playoffs".
+inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs), 
+              "gameType"] <- "Playoffs"
 
+# Display a table of the game types by record types for inactive teams.
 knitr::kable(table(inactiveTeams$gameType, inactiveTeams$recordType),
-             caption="Counts of Franchise Record Types by Game Type for Inactive Franchises")
+             caption=paste("Counts of Franchise Record Types by Game Type",
+                           "for Inactive Franchises"))
 ```
+
+Going forward, I will look at all teams, regardless of whether they are active or inactive. 
+
+No let's get a numerical summary of the win percentage by the game type.
 
 ```{r}
 winPercSumm <- teamTotalStats %>% 
+  # Select the gameType and winPercentage columns.
   select(gameType, winPercentage) %>%
-  filter(is.na(winPercentage) == FALSE) %>%
+  # Group by game type.
   group_by(gameType) %>%
+  # Get summary statistics for winPercentage.
   summarize("Min." = min(winPercentage),
             "1st Quartile" = quantile(winPercentage, 0.25, na.rm=TRUE),
             "Median" = quantile(winPercentage, 0.5, na.rm=TRUE),
@@ -684,32 +703,39 @@ winPercSumm <- teamTotalStats %>%
             "Std. Dev." = sd(winPercentage, na.rm=TRUE)
             )
 
+# Display a table of the summary stats.
 knitr::kable(winPercSumm, 
-             caption="Summary Statistics for Penalty Minutes per Game by Game Type",
+             caption="Summary Statistics for win percentage by game type",
              digits=2)
+```
+
+Based on the summary stats, the distributions don't seem very different, although win percentages in the playoffs might be more variable. There is at least on franchise that never won a playoff game. Let's visualize the distributions with a box plot.
+
+```{r}
+# Make a plot of franchise win percentage by game type.
+plot4 <- ggplot(teamTotalStats, 
+               aes(gameType,
+                   winPercentage,
+                   color=gameType)) + geom_boxplot() + 
+  geom_jitter() + 
+  scale_x_discrete("Game Type") + 
+  scale_y_continuous("Win Percentage") +
+  ggtitle("Franchise Win Percentage by Game Type") + 
+  theme(legend.position="none")
+
+# Display the plot.
+plot4
 ```
 
 Now let's look at a numeric summary of per game penalty minutes by game type. Playoff games seem to have a higher central tendency and be more variable in the penalty minutes per game.
 
 ```{r}
-plot4 <- ggplot(teamTotalStats, 
-               aes(gameType,
-                   winPercentage,
-                   color=gameType))
-plot4 <- plot4 + geom_boxplot() + geom_jitter()
-plot4 <- plot4 + scale_x_discrete("Game Type")
-plot4 <- plot4 + scale_y_continuous("Win Percentage")
-plot4 <- plot4 + ggtitle("Franchise Win Percentage by Game Type")
-plot4 <- plot4 + theme(legend.position = "none")
-
-plot4
-```
-
-
-```{r}
 penMinSumm <- teamTotalStats %>% 
+  # Select the gameType and penaltyMinutesPerGame columns.
   select(gameType, penaltyMinutesPerGame) %>%
+  # Group by game type.
   group_by(gameType) %>%
+  # Get summary statistics for penaltyMinutesPerGame.
   summarize("Min." = min(penaltyMinutesPerGame),
             "1st Quartile" = quantile(penaltyMinutesPerGame, 0.25),
             "Median" = quantile(penaltyMinutesPerGame, 0.5),
@@ -719,30 +745,37 @@ penMinSumm <- teamTotalStats %>%
             "Std. Dev." = sd(penaltyMinutesPerGame)
             )
 
+# Display a table of the summary stats.
 knitr::kable(penMinSumm, 
-             caption="Summary Statistics for Penalty Minutes per Game by Game Type",
+             caption=paste("Summary Statistics for Penalty Minutes per",
+                           "Game by Game Type"),
              digits=2)
 ```
 
-The histogram below provides another way to visualize the distribution of a variable. It's clear the penalty minutes per playoff game has a right tail stretching beyond regular season games.
+The histogram below provides an alternative to the box plot for visualizing the distribution of a penalty minutes per game. It's clear the penalty minutes per playoff game has a right tail stretching beyond regular season games.
 
 ```{r}
-plot5 <- ggplot(teamTotalStats,aes(penaltyMinutesPerGame, y=..density.., fill=gameType)) + 
+# Make a histogram of penalty minutes per game by game type.
+plot5 <- ggplot(teamTotalStats,aes(penaltyMinutesPerGame, y=..density..,
+                                   fill=gameType)) + 
     geom_histogram(data=subset(teamTotalStats,gameType == 'Regular Season'),
                    bins=10, alpha = 0.5) +
     geom_histogram(data=subset(teamTotalStats,gameType == 'Playoffs'),
                    bins=10, alpha = 0.5) + 
-   guides(fill=guide_legend(title="Game Type")) +
-    scale_x_continuous("Penalty Minutes per Game") + 
-    scale_y_continuous("Density") +
-    ggtitle("Histogram of Penalty Minutes per Game by Game Type")
+  guides(fill=guide_legend(title="Game Type")) +
+  scale_x_continuous("Penalty Minutes per Game") + 
+  scale_y_continuous("Density") +
+  ggtitle("Histogram of Penalty Minutes per Game by Game Type")
 
+# Display the plot.
 plot5
 ```
 
-I'm curious as to who are the teams spending the most time in the penalty box per game. I filtered for active teams and regular season games and made a bar chart for each time and their penalty minutes per game. I sorted the bars in the bar chart from worst behaved to best behaved.
+I'm curious as to which teams spend the most time in the penalty box per game. I filtered for active teams and regular season games and made a bar chart for each team and their penalty minutes per game. I sorted the bars in the bar chart from worst behaved to best behaved.
 
 ```{r}
+# Create a column with the triCode for each team ordered by most penalty 
+# time per game to least.
 mostPenaltyMinsRegSeason <- teamTotalStats %>%
   # Filter for active teams and regular season games.
   filter(is.na(lastSeasonId) & (gameTypeId == 2)) %>%
@@ -751,11 +784,16 @@ mostPenaltyMinsRegSeason <- teamTotalStats %>%
   # select the triCode column.
   select(triCode)
 
+# Create a bar chart for the penalty mins per regular season game by active 
+# teams.
 plot6 <- teamTotalStats %>%
+  # Filter for active teams and their regular season stats.
   filter(is.na(lastSeasonId) & (gameTypeId == 2)) %>%
-  mutate(sortedTriCode  = factor(triCode,
-                                 levels=mostPenaltyMinsRegSeason[["triCode"]],
-                                    ordered=TRUE))  %>%
+  # Create a column that is a sorted factor of triCode.
+  mutate(sortedTriCode = factor(triCode,
+                                levels=mostPenaltyMinsRegSeason[["triCode"]],
+                                ordered=TRUE))  %>%
+  # Create a bar chart.
   ggplot(aes(sortedTriCode, penaltyMinutesPerGame, 
              fill=penaltyMinutesPerGame)) +
   geom_col() + 
@@ -765,17 +803,23 @@ plot6 <- teamTotalStats %>%
   scale_y_continuous("Penalty Minutes per Game") +
   ggtitle("Penalty Minutes per Regular Season Game by Team")
 
+# Display the plot.
 plot6
 ```
 
 It seems the Philly Fliers are as rowdy as Philly sports fans. I produced the same bar plot again, but this time for playoff games. I kept the ordering of most rowdy in the regular season. If there is a correlation between penalties in the regular season and in the playoffs, we will expect the order to not change much.
 
 ```{r}
+# Create a bar chart for the penalty mins per playoff game by active 
+# teams.
 plot7 <- teamTotalStats %>%
+  # Filter for active teams and their playoff stats.
   filter(is.na(lastSeasonId) & (gameTypeId == 3)) %>%
-  mutate(sortedTriCode  = factor(triCode,
-                                 levels=mostPenaltyMinsRegSeason[["triCode"]],
-                                    ordered=TRUE))  %>%
+  # Create a column that is a sorted factor of triCode.
+  mutate(sortedTriCode = factor(triCode,
+                                levels=mostPenaltyMinsRegSeason[["triCode"]],
+                                ordered=TRUE))  %>%
+  # Create a bar chart.
   ggplot(aes(sortedTriCode, penaltyMinutesPerGame, 
              fill=penaltyMinutesPerGame)) +
   geom_col() + 
@@ -785,33 +829,37 @@ plot7 <- teamTotalStats %>%
   scale_y_continuous("Penalty Minutes per Game") +
   ggtitle("Penalty Minutes per Playoff Game by Team")
 
+# Display the plot.
 plot7
 ```
 
-The order did indeed not change much. Let's look at a scatter plot between penalty minutes per game in the playoffs vs. the regular season.
+The order did not change much, so there is a correlation between regular season penalty time and playoff penalty time. Let's look at a scatter plot between penalty minutes per game in the playoffs vs. the regular season.
 
 ```{r}
-
+# Create a scatter plot of playoff penalty time per game vs. regular season.
 plot8 <- teamTotalStats %>%
+  # Filter for active teams.
   filter(is.na(lastSeasonId)) %>%
-  
+  # Select triCode, gameType, and penaltyMinutesPer Game.
   select(triCode, gameType, penaltyMinutesPerGame) %>%
+  # Spread penaltyMinutesPerGame by gameType.
   spread(gameType, penaltyMinutesPerGame) %>%
+  # Create a scatter plot with a regression line.
   ggplot(aes(`Regular Season`, Playoffs)) +
   geom_point(alpha=0.75,  color="blue") + 
   geom_smooth(method=lm, formula=y~x, color="red") +
   scale_x_continuous("Regular Penalty Min. per Game") +
   scale_y_continuous("Playoffs Penalty Min. per Game") + 
-  ggtitle("Playoff vs. Regular Season Penalty Min. Per Game")
+  ggtitle("Playoff vs. Regular Season Penalty Min. Per Game (Active Teams)")
 
 plot8
 ```
 
-I did not expect the correlation to be that tight, but the presence of a positive correlation is not very surprising.
+Although the positive correlation is not very surprising, I did not expect the correlation to be that tight.
 
-I wonder how penalty minutes per game relates to the win-loss ratio. Let's find out!
+I wonder how penalty minutes per game relates to the win percentage. Let's find out!
 
-I created a scatter plot for the win-loss ratio vs the penalty minutes per game by game type. I experimented with the regression lines a little. I first started with a [LOESS](https://en.wikipedia.org/wiki/Local_regression) and saw an upside-down U pattern to the lines. I decided to plot them with a quadratic regression line to make things smoother.
+I created a scatter plot for the win percentage vs the penalty minutes per game by game type. I experimented with the regression lines a little. I first started with a [LOESS](https://en.wikipedia.org/wiki/Local_regression) regression line and saw an upside-down U pattern to the lines. I decided to plot them with a quadratic regression line to make things smoother.
 
 ```{r}
 plot9 <- teamTotalStats %>%
@@ -830,11 +878,28 @@ plot9 <- teamTotalStats %>%
 plot9
 ```
 
-As you can see, the relationship between the win-loss ratio and penalty minutes per game is not exactly tidy, but there does seem to be a quadratic relationship there. In regular season games, it seems like 15 minutes is an optimal amount of time to be in the penalty box with regards to the win-loss ratio. For playoff games, it appears to be in the ballpark of 17 minutes.
+As you can see, the relationship between the win percentage and penalty minutes per game is not exactly tidy, but there does seem to be a quadratic relationship there. In regular season games, it seems like 15 minutes is an optimal amount of time to be in the penalty box with regards to the win percentage. For playoff games, it appears to be in the ballpark of 17 minutes.
 
+I do not know much about hockey, but it seems like there is a strategy to taking penalties, even if it gives the other team a power play opportunity.
 
+```{r}
+# Create a model regressing win percentage on game type and penalty minutes
+# per game for playoff games.
+winPercMod <- lm(winPercentage ~ poly(penaltyMinutesPerGame, 2),
+                 data=teamTotalStats)
 
+# Get the percentage of variance explained.
+playoffVarExplainedPerc <- round(100*summary(winPercMod)[[8]],1)
 
+# Create a table of the regression coefficients.
+winPercMod %>%
+  tidy() %>%
+  knitr::kable(
+    caption=paste("Coefficient summary of Win Perc. regressed on",
+                  "Penalty Min. per Game for Playoff Games"),
+    col.names = c("Predictor", "Est. Coef.", "SE", "t", "P(|t| > 0)"),
+    digits=c(0, 2, 3, 2, 3)
+  )
+```
 
-
-
+Given the t-statistics for the regression coefficients, a quadratic relationship appears reasonable. This model explains `r print(paste0(playoffVarExplained, "%")` of the variation in win percentage.
