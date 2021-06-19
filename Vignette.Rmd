@@ -530,7 +530,7 @@ Two variables of interest to me are shots per game and shooting percentage. I'm 
 ```{r}
 # Add a column for the win/loss ratio (wins per loss)
 currentSeason <- currentSeason %>%
-  mutate(win.loss.ratio = stat.wins / stat.losses)
+  mutate(win.percentage = stat.wins / stat.gamesPlayed)
 ```
 
 My guess is these two are positively related to the win-to-loss ratio. A high shooting percentage means you are fairly likely to score when you shoot. A high number of shots per game likely means you are controlling the puck more than the other team and you have more scoring opportunities, unless you're taking wild shots. Plus, I think there is a quote from some hockey player about taking shots.
@@ -548,12 +548,12 @@ Below I plotted the win-loss ratio against shots per game and shooting percentag
 # Create a ggplot object to plot shooting pct vs. shots per game.
 plot1 <- ggplot(currentSeason, 
                aes(stat.shotsPerGame,
-                   win.loss.ratio,
-                   color=win.loss.ratio))
+                   win.percentage,
+                   color=win.percentage))
 # Make a scatter plot.
 plot1 <- plot1 + geom_point(size=4, alpha=0.75)
 # Adjust the color gradient to go from blue at the low end, to red at the high
-# end of win.loss.ratio
+# end of win.percentage
 plot1 <- plot1 + scale_color_gradient(low="blue", high="red")
 # Remove the legend.
 plot1 <- plot1 + theme(legend.position="none")
@@ -569,12 +569,12 @@ plot1 <- plot1 + ggtitle("Wins/Losses vs. Shots per Game")
 # Create a ggplot object to plot shooting pct vs. shots per game.
 plot2 <- ggplot(currentSeason, 
                aes(stat.shootingPctg,
-                   win.loss.ratio,
-                   color=win.loss.ratio))
+                   win.percentage,
+                   color=win.percentage))
 # Make a scatter plot.
 plot2 <- plot2 + geom_point(size=4, alpha=0.75)
 # Adjust the color gradient to go from blue at the low end, to red at the high
-# end of win.loss.ratio
+# end of win.percentage
 plot2 <- plot2 + scale_color_gradient(low="blue", high="red")
 # Remove the legend.
 plot2 <- plot2 + theme(legend.position="none")
@@ -591,18 +591,18 @@ plot2 <- plot2 + ggtitle("Wins/Losses vs. Shooting Perc.")
 plot_grid(plot1, plot2, ncol=2)
 ```
 
-Now let's look at shooting percentage vs. shots per game. I added a color gradient for the win-loss-ratio. There doesn't appear to be a clear relationship between those two variables.
+Now let's look at shooting percentage vs. shots per game. I added a color gradient for the win-loss-ratio. 
 
 ```{r}
 # Create a ggplot object to plot shooting pct vs. shots per game.
 plot3 <- ggplot(currentSeason, 
                aes(stat.shotsPerGame,
                    stat.shootingPctg,
-                   color=win.loss.ratio))
+                   color=win.percentage))
 # Make a scatter plot.
 plot3 <- plot3 + geom_point(size=4, alpha=0.75)
 # Adjust the color gradient to go from blue at the low end, to red at the high
-# end of win.loss.ratio
+# end of win.percentage
 plot3 <- plot3 + scale_color_gradient(low="blue", high="red",
                                     name="Wins / Losses")
 # Add an x-axis label.
@@ -610,10 +610,12 @@ plot3 <- plot3 + scale_x_continuous("Shots per Game")
 # Add an y-axis label.
 plot3 <- plot3 + scale_y_continuous("Shooting Percentage")
 # Add a title.
-plot3 <- plot3 + ggtitle("Shooting Percentage vs. Shots per Game")
+plot3 <- plot3 + ggtitle("Shooting Percentage vs. Shots per Game") 
 
 plot3
 ```
+
+There doesn't appear to be a clear relationship between those two variables.
 
 Now let's look at some total season stats. I called `nhlAPI("teamTotals")` to get this data.
 
@@ -633,37 +635,61 @@ table(teamTotalStats %>%
 ```
 Not all the teams have been around for the same length of time and I want to adjust some stats, say total penalty minutes, to be able to compare teams on the same basis. 
 
-To do this, I'm calculating the the penalty minutes per game as $\frac{\text{Total Penalty Minutes}{Total Games Played}}$. I again calculate the win-loss ratio, because I want to see how that is related to penalty minutes per game. I'm also interested in how a game being a playoff or regular season game affects penalty minutes. I think the importance of a playoff game might cause changes in the penalty behavior.
+To do this, I'm calculating the the penalty minutes per game as $\frac{\text{Total Penalty Minutes}}{\text{Total Games Played}}$. I again calculate the win-loss ratio, because I want to see how penalty minutes relate to a team's record. I'm also interested in how a game being a playoff or regular season game affects penalty minutes. I think the importance of a playoff game might cause changes in the penalty behavior.
 
 ```{r}
 teamTotalStats <- teamTotalStats %>%
   # Calculate the penalty minutes per game.
   mutate(penaltyMinutesPerGame = penaltyMinutes / gamesPlayed,
-         winsLossRatio = wins / losses,
+         winPercentage = wins / gamesPlayed,
          gameType = ifelse(gameTypeId == 2, "Regular Season", "Playoffs"),
-         pointsPerGame = points / gamesPlayed)
+         recordType = ifelse(wins > losses, "Winning Record", "Losing Record"))
 ```
 
 ```{r}
-pointsSumm <- teamTotalStats %>% 
-  select(gameType, pointsPerGame) %>%
-  filter(is.na(pointsPerGame) == FALSE) %>%
+activeTeams <- teamTotalStats %>%
+  filter((is.na(lastSeasonId) == TRUE))
+
+knitr::kable(table(activeTeams$gameType, activeTeams$recordType),
+             caption="Counts of Franchise Record Types by Game Type for Active Franchises")
+```
+
+
+```{r}
+winPercSumm <- teamTotalStats %>% 
+  select(gameType, winPercentage) %>%
+  filter(is.na(winPercentage) == FALSE) %>%
   group_by(gameType) %>%
-  summarize("Min." = min(pointsPerGame),
-            "1st Quartile" = quantile(pointsPerGame, 0.25, na.rm=TRUE),
-            "Median" = quantile(pointsPerGame, 0.5, na.rm=TRUE),
-            "Mean" = mean(pointsPerGame, na.rm=TRUE),
-            "3rd Quartile" = quantile(pointsPerGame, 0.75, na.rm=TRUE),
-            "Max" = max(pointsPerGame),
-            "Std. Dev." = sd(pointsPerGame, na.rm=TRUE)
+  summarize("Min." = min(winPercentage),
+            "1st Quartile" = quantile(winPercentage, 0.25, na.rm=TRUE),
+            "Median" = quantile(winPercentage, 0.5, na.rm=TRUE),
+            "Mean" = mean(winPercentage, na.rm=TRUE),
+            "3rd Quartile" = quantile(winPercentage, 0.75, na.rm=TRUE),
+            "Max" = max(winPercentage),
+            "Std. Dev." = sd(winPercentage, na.rm=TRUE)
             )
 
-knitr::kable(pointsSumm, 
+knitr::kable(winPercSumm, 
              caption="Summary Statistics for Penalty Minutes per Game by Game Type",
              digits=2)
 ```
 
 Now let's look at a numeric summary of per game penalty minutes by game type. Playoff games seem to have a higher central tendency and be more variable in the penalty minutes per game.
+
+```{r}
+plot4 <- ggplot(teamTotalStats, 
+               aes(gameType,
+                   winPercentage,
+                   color=gameType))
+plot4 <- plot4 + geom_boxplot() + geom_jitter()
+plot4 <- plot4 + scale_x_discrete("Game Type")
+plot4 <- plot4 + scale_y_continuous("Win Percentage")
+plot4 <- plot4 + ggtitle("Franchise Win Percentage by Game Type")
+plot4 <- plot4 + theme(legend.position = "none")
+
+plot4
+```
+
 
 ```{r}
 penMinSumm <- teamTotalStats %>% 
@@ -683,32 +709,17 @@ knitr::kable(penMinSumm,
              digits=2)
 ```
 
-The box plot below provides the same information as in the table above, minus the mean and standard deviation. It's clear playoff games tend to have higher penalty minutes per game and the right tail stretches decently far.
+The histogram below provides another way to visualize the distribution of a variable. It's clear the penalty minutes per playoff game has a right tail stretching beyond regular season games.
 
 ```{r}
-plot4 <- ggplot(teamTotalStats, 
-               aes(gameType,
-                   penaltyMinutesPerGame,
-                   color=gameType))
-plot4 <- plot4 + geom_boxplot() + geom_jitter()
-plot4 <- plot4 + scale_x_discrete("Game Type")
-plot4 <- plot4 + scale_y_continuous("Penalty Minutes per Game")
-plot4 <- plot4 + ggtitle("Penalty Minutes per Game by Game Type")
-plot4 <- plot4 + theme(legend.position = "none")
-
-plot4
-```
-The histogram below provides another way to visualize the distributions of penalty minutes per game.
-
-```{r}
-plot5 <- ggplot(teamTotalStats,aes(penaltyMinutesPerGame, fill=gameType)) + 
+plot5 <- ggplot(teamTotalStats,aes(penaltyMinutesPerGame, y=..density.., fill=gameType)) + 
     geom_histogram(data=subset(teamTotalStats,gameType == 'Regular Season'),
                    bins=10, alpha = 0.5) +
     geom_histogram(data=subset(teamTotalStats,gameType == 'Playoffs'),
                    bins=10, alpha = 0.5) + 
    guides(fill=guide_legend(title="Game Type")) +
     scale_x_continuous("Penalty Minutes per Game") + 
-    scale_y_continuous("Count") +
+    scale_y_continuous("Density") +
     ggtitle("Histogram of Penalty Minutes per Game by Game Type")
 
 plot5
@@ -739,6 +750,12 @@ plot6 <- teamTotalStats %>%
   scale_y_continuous("Penalty Minutes per Game") +
   ggtitle("Penalty Minutes per Regular Season Game by Team")
 
+plot6
+```
+
+It seems the Philly Fliers are as rowdy as Philly sports fans. I produced the same bar plot again, but this time for playoff games. I kept the ordering of most rowdy in the regular season. If there is a correlation between penalties in the regular season and in the playoffs, we will expect the order to not change much.
+
+```{r}
 plot7 <- teamTotalStats %>%
   filter(is.na(lastSeasonId) & (gameTypeId == 3)) %>%
   mutate(sortedTriCode  = factor(triCode,
@@ -753,12 +770,6 @@ plot7 <- teamTotalStats %>%
   scale_y_continuous("Penalty Minutes per Game") +
   ggtitle("Penalty Minutes per Playoff Game by Team")
 
-plot6
-```
-
-It seems the Philly Fliers are as rowdy as Philly sports fans. I produced the same bar plot again, but this time for playoff games. I kept the ordering of most rowdy in the regular season. If there is a correlation between penalties in the regular season and in the playoffs, we will expect the order to not change much.
-
-```{r}
 plot7
 ```
 
@@ -792,13 +803,14 @@ plot9 <- teamTotalStats %>%
   mutate(sortedTriCode  = factor(triCode,
                                  levels=mostPenaltyMinsRegSeason[["triCode"]],
                                     ordered=TRUE)) %>%
-  select(sortedTriCode, gameType, penaltyMinutesPerGame, winsLossRatio) %>%
-  ggplot(aes(penaltyMinutesPerGame, winsLossRatio, color=gameType)) +
+  select(sortedTriCode, gameType, penaltyMinutesPerGame, winPercentage) %>%
+  ggplot(aes(penaltyMinutesPerGame, winPercentage, color=gameType)) +
   geom_point(size=2) + geom_smooth(method="lm", formula="y~poly(x, 2)") + 
   scale_x_continuous("Penalty Minutes per Game") + 
-  scale_y_continuous("Win-Loss Ratio") + 
-  guides(fill=guide_legend(title="Game Type")) + 
-  ggtitle("Win-Loss Ratio vs. Penalty Minutes per Game by Game Type")
+  scale_y_continuous("Win Percentage") + 
+  theme(legend.position = "none") + 
+  ggtitle("Win Percentage vs. Penalty Minutes per Game by Game Type") + 
+  facet_wrap(~gameType)
 
 plot9
 ```
