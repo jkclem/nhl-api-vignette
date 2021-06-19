@@ -12,24 +12,27 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+This document is a vignette to show how to retrieve data from an [API](https://en.wikipedia.org/wiki/API). To demonstrate, I'll be interacting with the NHL API. I'm going to build a few functions to interact with some of the endpoints and explore some of the data I can retrieve.
+
+As a note, some of these functions return data at a team level. Some of the APIs use the franchise ID number, while some use the most recent team ID to select a specific team's endpoint. For that reason, if you use any of my functions I recommend supplying a full team name (e.g. `"Montréal Canadiens"`). My functions will decode them to the appropriate ID number.
+
 # Requirements
 
-To use the functions for interacting with the [NHL API](https://gitlab.com/dword4/nhlapi/-/blob/master/records-api.md), you need to install and load:
+To use the functions for interacting with the NHL API, you need to install and load:
 
 - [`tidyverse`](https://www.tidyverse.org/): tons of useful features for data manipulation and plotting
 - [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/): API interaction
 
-Additionally, I used the following packages for the data exploration:
+Additionally, I used the following packages for the rest of the document:
 
 - [`cowplot`](https://cran.r-project.org/web/packages/cowplot/index.html): extra functionality for `ggplot2`
 - [`imager`](https://cran.r-project.org/web/packages/imager/): loading in an images
-- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html): displaying tables and dataframes
+- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html): displaying tables
 - [`broom`](https://cran.r-project.org/web/packages/broom/vignettes/broom.html):
-I used it for tidying up a regression output
-
-I didn't pull in the entire  to avoid pulling in unnecessary functions.
+tidying up a regression output for display
 
 ```{r warning=FALSE, message=FALSE}
+# Load in the packages.
 library(tidyverse)
 library(jsonlite)
 library(cowplot)
@@ -38,6 +41,8 @@ library(broom)
 ```
 
 # Functions
+
+Here is where I define the functions to interact with the [NHL Records API](https://gitlab.com/dword4/nhlapi/-/blob/master/records-api.md) and the [NHL Stats API](https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md), as well as some helper functions.
 
 ## `convertToNumeric`
 
@@ -65,7 +70,7 @@ convertToNumeric <- function(vec){
 
 ## `franchise`
 
-I wrote this function to interact with the `franchise` endpoint of the [NHL Records API](https://gitlab.com/dword4/nhlapi/-/blob/master/records-api.md). It returns a `data.frame` containing the franchise and current team Id numbers, the name and abbreviations of teams, and their first and last seasons. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
+I wrote this function to interact with the `franchise` endpoint of the NHL Records API. It returns a `data.frame` containing the franchise and current team Id numbers, the name and abbreviations of teams, and their first and last seasons. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
 
 ```{r}
 franchise <- function(team="all"){
@@ -383,7 +388,7 @@ franchiseDetail <- function(team){
 
 ## `seasonStats`
 
-I wrote this function to interact with the `franchise` endpoint of the [NHL Stats API](https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md). It returns a `data.frame` containing the current season stats. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
+I wrote this function to interact with the `franchise` endpoint of the NHL Stats API. It returns a `data.frame` containing the current season stats. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
 
 ```{r}
 seasonStats <- function(team="all", raw=FALSE){
@@ -536,7 +541,7 @@ currentSeason <- currentSeason %>%
   mutate(win.percentage = stat.wins / stat.gamesPlayed)
 ```
 
-My guess is these two are positively related to the win percentage. A high shooting percentage means you are fairly likely to score when you shoot. A high number of shots per game likely means you are controlling the puck more than the other team and you have more scoring opportunities, unless you're taking wild shots. Plus, I think there is a quote from some hockey player about taking shots.
+My guess is these two are positively related to the win percentage. A high shooting percentage means you are fairly likely to score when you shoot. A high number of shots per game likely means you are controlling the puck more than the other team and you have more scoring opportunities, unless you're taking wild shots. Both stats seem like great proxies for offensive power.
 
 ```{r}
 # Read in the image.
@@ -545,7 +550,7 @@ img <- load.image("./images/Wayne Gretzky Quote.jpg")
 plot(img, axes=0)
 ```
 
-Below I plotted the win percentage against shots per game and shooting percentage. I added a regression line as well. As expected, both are positively related to the win percentage, although there appears to be some [heteroskedasticity](https://en.wikipedia.org/wiki/Heteroscedasticity) in the plot on the right.
+Below I plotted the win percentage against shots per game and shooting percentage. I added a regression line as well. As expected, both are positively related to the win percentage.
 
 ```{r}
 # Create a scatter plot of win pct vs. shots per game.
@@ -593,7 +598,7 @@ plot3 <- ggplot(currentSeason, aes(stat.shotsPerGame,
 plot3
 ```
 
-There doesn't appear to be a clear relationship between those two variables.
+There doesn't appear to be a clear relationship between those two variables, which I thought there might be.
 
 Now let's look at some stats for the total history of all teams. I called `nhlAPI("teamTotals")` to get this data.
 
@@ -602,7 +607,7 @@ Now let's look at some stats for the total history of all teams. I called `nhlAP
 teamTotalStats <- nhlAPI("teamTotals")
 ```
 
-First, let's compare the number of inactive vs. active teams.
+First, let's look at the number of inactive vs. active teams.
 
 ```{r}
 teamStatus <- teamTotalStats %>%
@@ -621,9 +626,9 @@ numInactive <- sum(teamStatus =="Inactive")
 
 There are `r print(numInactive)` inactive and `r print(numActive)` active teams. Almost as many teams have left the NHL than are currently still playing.
 
-Not all the teams have been around for the same length of time and I want to adjust some stats, say total penalty minutes, to be able to compare teams on the same basis. 
+Not all the teams have been around for the same length of time and I want to adjust some stats to be able to compare teams on the same basis. I'm particularly interested in the penalty minutes and records of the teams.
 
-To do this, I'm calculating the the penalty minutes per game as $\frac{\text{Total Penalty Minutes}}{\text{Total Games Played}}$. I again calculate the win percentage as $\text{Win Percentage} = \frac{\text{Wins}}{\text{Games Played}}$, because I want to see how penalty minutes relate to a team's record. I'm also interested in how a game being a playoff or regular season game affects penalty minutes because I think the importance of a playoff game might cause changes in the penalty behavior.
+To get numbers on the same basis when the number of games played are so different, I'm calculating the the penalty minutes per game as $\frac{\text{Total Penalty Minutes}}{\text{Total Games Played}}$. I again calculate the win percentage as $\text{Win Percentage} = \frac{\text{Wins}}{\text{Games Played}}$. I'm also interested in how a game being a playoff or regular season game affects penalty minutes because I think the importance of a playoff game might cause changes in the penalty behavior.
 
 I also created a column, `recordType` that indicates if a team has a winning or losing record. They are classified as having a winning record if $0.5 < \frac{\text{Wins}}{\text{Games Played}}$ and a losing record if $0.5 \geq \frac{\text{Wins}}{\text{Games Played}}$.
 
@@ -685,7 +690,7 @@ knitr::kable(table(inactiveTeams$gameType, inactiveTeams$recordType),
 
 Going forward, I will look at all teams, regardless of whether they are active or inactive. 
 
-No let's get a numerical summary of the win percentage by the game type.
+Now let's get a numerical summary of the win percentage by the game type.
 
 ```{r}
 winPercSumm <- teamTotalStats %>% 
@@ -709,7 +714,7 @@ knitr::kable(winPercSumm,
              digits=2)
 ```
 
-Based on the summary stats, the distributions don't seem very different, although win percentages in the playoffs might be more variable. There is at least on franchise that never won a playoff game. Let's visualize the distributions with a box plot.
+Based on the summary stats, the distributions don't seem very different, although win percentages in the playoffs might be more variable. There is at least on franchise that never won a playoff game. Let's visualize the distributions with box plots.
 
 ```{r}
 # Make a plot of franchise win percentage by game type.
@@ -726,6 +731,8 @@ plot4 <- ggplot(teamTotalStats,
 # Display the plot.
 plot4
 ```
+
+There is definitely a difference in spread in win percentage between playoff and regular season games. Even if they are close in central tendency, regular season win percentages are more tightly distributed.
 
 Now let's look at a numeric summary of per game penalty minutes by game type. Playoff games seem to have a higher central tendency and be more variable in the penalty minutes per game.
 
@@ -880,7 +887,7 @@ plot9
 
 As you can see, the relationship between the win percentage and penalty minutes per game is not exactly tidy, but there does seem to be a quadratic relationship there. In regular season games, it seems like 15 minutes is an optimal amount of time to be in the penalty box with regards to the win percentage. For playoff games, it appears to be in the ballpark of 17 minutes.
 
-I do not know much about hockey, but it seems like there is a strategy to taking penalties, even if it gives the other team a power play opportunity.
+I do not know much about hockey, but it seems like there is a strategy to taking penalties, even if it gives the other team a power play opportunity. Let's test for the quadratic relationship a little more formally with a regression.
 
 ```{r}
 # Create a model regressing win percentage on game type and penalty minutes
@@ -889,17 +896,21 @@ winPercMod <- lm(winPercentage ~ poly(penaltyMinutesPerGame, 2),
                  data=teamTotalStats)
 
 # Get the percentage of variance explained.
-playoffVarExplainedPerc <- round(100*summary(winPercMod)[[8]],1)
+winVarExplainedPerc <- round(100*summary(winPercMod)[[8]],1)
 
 # Create a table of the regression coefficients.
 winPercMod %>%
   tidy() %>%
   knitr::kable(
     caption=paste("Coefficient summary of Win Perc. regressed on",
-                  "Penalty Min. per Game for Playoff Games"),
+                  "Penalty Min. per Game"),
     col.names = c("Predictor", "Est. Coef.", "SE", "t", "P(|t| > 0)"),
     digits=c(0, 2, 3, 2, 3)
   )
 ```
 
-Given the t-statistics for the regression coefficients, a quadratic relationship appears reasonable. This model explains `r print(paste0(playoffVarExplained, "%")` of the variation in win percentage.
+Given the t-statistics for the regression coefficients, a quadratic relationship appears reasonable. This model explains `r print(paste0(winVarExplainedPerc, "%"))` of the variation in win percentage. This is an interesting find!
+
+# Conclusions
+
+
