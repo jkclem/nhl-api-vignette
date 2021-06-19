@@ -23,13 +23,13 @@ Additionally, I used the following packages for the data exploration:
 
 - [`cowplot`](https://cran.r-project.org/web/packages/cowplot/index.html): extra functionality for `ggplot2`
 - [`imager`](https://cran.r-project.org/web/packages/imager/): loading in an images
-- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html)
+- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html): displaying tables and dataframes
 
 I didn't pull in the entire  to avoid pulling in unnecessary functions.
 
 ```{r warning=FALSE, message=FALSE}
-library(jsonlite)
 library(tidyverse)
+library(jsonlite)
 library(cowplot)
 library(imager)
 ```
@@ -654,6 +654,21 @@ knitr::kable(table(activeTeams$gameType, activeTeams$recordType),
              caption="Counts of Franchise Record Types by Game Type for Active Franchises")
 ```
 
+```{r}
+inactiveTeams <- teamTotalStats %>%
+  filter((is.na(lastSeasonId) == FALSE))
+
+numInactiveTeams <- dim(filter(inactiveTeams, gameTypeId == 2))[1]
+numInactiveTeamsInPlayoffs <- dim(filter(inactiveTeams, gameTypeId == 3))[1]
+numDidntMakePlayoffs <- numInactiveTeams - numInactiveTeamsInPlayoffs
+currentEndRow <- nrow(inactiveTeams)
+inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs),] <- NA
+inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs), "recordType"] <- "Losing Record"
+inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs), "gameType"] <- "Playoffs"
+
+knitr::kable(table(inactiveTeams$gameType, inactiveTeams$recordType),
+             caption="Counts of Franchise Record Types by Game Type for Inactive Franchises")
+```
 
 ```{r}
 winPercSumm <- teamTotalStats %>% 
