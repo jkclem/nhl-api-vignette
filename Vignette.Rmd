@@ -1,5 +1,5 @@
 ---
-title: "NHL API Vignette"
+title: "Interacting with APIs: Example with the NHL API"
 author: "John Clements"
 date: "6/15/2021"
 output: 
@@ -15,6 +15,8 @@ knitr::opts_chunk$set(echo = TRUE)
 This document is a vignette to show how to retrieve data from an [API](https://en.wikipedia.org/wiki/API). To demonstrate, I'll be interacting with the NHL API. I'm going to build a few functions to interact with some of the endpoints and explore some of the data I can retrieve.
 
 As a note, some of these functions return data at a team level. Some of the APIs use the franchise ID number, while some use the most recent team ID to select a specific team's endpoint. For that reason, if you use any of my functions I recommend supplying a full team name (e.g. `"Montréal Canadiens"`). My functions will decode them to the appropriate ID number.
+
+[Link to the project github repo.](https://github.com/jkclem/nhl-api-vignette)
 
 # Requirements
 
@@ -40,7 +42,7 @@ library(imager)
 library(broom)
 ```
 
-# Functions
+# API Interaction Functions
 
 Here is where I define the functions to interact with the [NHL Records API](https://gitlab.com/dword4/nhlapi/-/blob/master/records-api.md) and the [NHL Stats API](https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md), as well as some helper functions.
 
@@ -56,7 +58,7 @@ convertToNumeric <- function(vec){
   ###
   
   # If any of the values in vec return NA when trying to convert to numeric,
-  # just return vec as the output.
+  # set output to the unchanged input.
   if (any(is.na(suppressWarnings(as.numeric(vec))) == TRUE)){
     output <- vec
   }
@@ -64,6 +66,7 @@ convertToNumeric <- function(vec){
   else {
     output <- as.numeric(vec)
   }
+  # Return output.
   return(output)
 }
 ```
@@ -75,9 +78,8 @@ I wrote this function to interact with the `franchise` endpoint of the NHL Recor
 ```{r}
 franchise <- function(team="all"){
   ###
-  # This functions returns a dataframe with metadata on all teams who ever 
-  # played in the NHL. It can also return those columns for a single team if a 
-  # franchise ID or name is passed.
+  # This functions returns a data.frame with metadata on NHL teams. It can also
+  # return those columns for a single team if a team ID or name is passed.
   ###
   
   # Get the franchise data from the franchises endpoint.
@@ -85,7 +87,7 @@ franchise <- function(team="all"){
       "https://records.nhl.com/site/api/franchise"
       )
   
-  # Select only the dataframe.
+  # Select only the data.frame from the JSON output.
   output <- outputAPI$data
   
   # If team does not equal "all", check if it is a franchise ID or team name.
@@ -101,7 +103,7 @@ franchise <- function(team="all"){
       output <- output %>%
         filter(fullName == team)
     }
-    # Otherwise, warn the user and return the entire dataframe.
+    # Otherwise, throw an informative error.
     else {
       message <- paste("ERROR: Argument for team was not found in either",
                        "the fullName or id columns. Try franchise('all') to",
@@ -114,10 +116,11 @@ franchise <- function(team="all"){
     
   }
   
-  # Convert any columns that should be numeric to numeric.
+  # Convert any columns that should be numeric to numeric, while suppressing
+  # messages.
   output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
-  # Return the output dataframe.
+  # Return the output data.frame.
   return(output)
 }
 ```
@@ -130,7 +133,8 @@ I wrote this function to interact with the `franchise-team-totals` endpoint of t
 teamTotals <- function(team="all"){
   ###
   # This function returns total stats for every franchise (ex roadTies,
-  # roadWins, etc) unless a specific team Id or full team name is passed.
+  # roadWins, etc) unless a specific team Id or full team name is passed. Then
+  # it returns that data for the specific team. The output is a data.frame.
   ###
   
   # Get the franchise data from the franchises endpoint.
@@ -138,13 +142,13 @@ teamTotals <- function(team="all"){
     "https://records.nhl.com/site/api/franchise-team-totals"
     )
   
-  # Select only the dataframe.
+  # Select only the data.frame from the JSON output.
   output <- outputAPI$data
   
   # If team does not equal "all", check if it is a team ID or team name.
   if (team != "all"){
     
-    # If team is in the franchiseId column, subset output for just that row.
+    # If team is in the teamId column, subset output for just that row.
     if (team %in% output$teamId){
       output <- output %>%
         filter(teamId == team)
@@ -167,51 +171,42 @@ teamTotals <- function(team="all"){
     
   }
   
-  # Convert any columns that should be numeric to numeric.
+  # Convert any columns that should be numeric to numeric values.
   output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
-  # Return the output dataframe.
+  # Return the output data.frame.
   return(output)
 }
 ```
 
-## `findTeamId`
+## `findId`
 
-This is a helper function to look up the most recent team Id for a full team name (e.g. `"Boston Bruins"`) because I a didn't feel like hard coding it. It is used in the `franchiseDetail` and `seasonStats` functions because the endpoints they connect to use the most recent team Id to access team-level data in the API call.
+This is a helper function to look up the most recent team Id or franchise Id for a full team name (e.g. `"Boston Bruins"`). It is used to find the appropriate Id number for a API endpoint.
 
 ```{r}
-findTeamId <- function(teamName){
-  ###
-  # This helper function looks up the franchise id for a full team name 
-  # e.g. "Boston Bruins".
-  ###
+findId <- function(teamName, idType){
   
-  # Call the franchise function with the team name.
-  teamId <- franchise(teamName)
+  # Call the franchise function with the team name so we can look up the 
+  # appropriate Id from it.
+  franchiseData <- franchise(teamName)
   
-  # Return only the most recent team id number.
-  return(teamId$mostRecentTeamId)
+  # Retrieve the franchise Id if that is what the idType is.
+  if (idType == "franchise"){
+    output <- franchiseData$id
+  }
+  # Retrieve the most recent team Id if that is what the idType is.
+  else if (idType == "team"){
+    output <- franchiseData$mostRecentTeamId
+  }
+  # Any other argument throws an error.
+  else {
+    stop("Invalid idType argument! Should be 'franchise' or 'team'!")
+  }
+  # Return the appropriate Id.
+  return(output)
 }
 ```
 
-## `findFranchiseId`
-
-This is a helper function does the same thing as `findTeamId`, except for the franchise Id. It is used in the `seasonRecords`, `goalieRecords`, and `skaterRecords` functions because they use the franchise Id to access team-level data in the API call.
-
-```{r}
-findFranchiseId <- function(teamName){
-  ###
-  # This helper function looks up the franchise id for a full team name 
-  # e.g. "Boston Bruins".
-  ###
-  
-  # Call the franchise function with the team name.
-  teamId <- franchise(teamName)
-  
-  # Return only the most recent team id number.
-  return(teamId$id)
-}
-```
 
 ## `seasonRecords`
 
@@ -220,13 +215,13 @@ The `seasonRecords` function returns the records stats for a single team. For ex
 ```{r}
 seasonRecords <- function(team){
   ###
-  # This functions returns a dataframe with the season records for a variety 
+  # This functions returns a data.frame with the season records for a variety 
   # of stats for a single team.
   ###
   
-  # If team is a "character" type, try to look up the team id.
+  # If team is a "character" type, try to look up the franchise id.
   if (typeof(team) == "character"){
-    teamId = findFranchiseId(team)
+    teamId = findId(team, "franchise")
   }
   # If team is an integer, set teamId equal to team.
   else if ((typeof(team) == "double") & (team %% 1 == 0)){
@@ -234,7 +229,7 @@ seasonRecords <- function(team){
   }
   # Otherwise, throw an error.
   else {
-    message <- paste("Please pass a team id (integer) or a full team name",
+    message <- paste("Please pass a franchise id (integer) or a full team name",
                      "e.g. 'Boston Bruins'.")
     stop(message)
   }
@@ -249,7 +244,7 @@ seasonRecords <- function(team){
   # Select only the data.
   output <- outputAPI$data
   
-  # Convert any columns that should be numeric to numeric.
+  # Convert any columns that should be numeric to numeric format.
   output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
   # Return the output from the request.
@@ -264,12 +259,12 @@ The `goalieRecords` function returns the stats for all the goalies who've played
 ```{r}
 goalieRecords <- function(team){
   ###
-  # This functions returns a dataframe with the goalie records for a team.
+  # This functions returns a data.frame with the goalie records for a team.
   ###
   
-  # If team is a "character" type, try to look up the team id.
+  # If team is a "character" type, try to look up the franchise id.
   if (typeof(team) == "character"){
-    teamId = findFranchiseId(team)
+    teamId = findId(team, "franchise")
   }
   # If team is an integer, set teamId equal to team.
   else if ((typeof(team) == "double") & (team %% 1 == 0)){
@@ -277,7 +272,7 @@ goalieRecords <- function(team){
   }
   # Otherwise, throw an error.
   else {
-    message <- paste("Please pass a team id (integer) or a full team name",
+    message <- paste("Please pass a franchise id (integer) or a full team name",
                      "e.g. 'Boston Bruins'.")
     stop(message)
   }
@@ -289,10 +284,10 @@ goalieRecords <- function(team){
   
   # Get the API output.
   outputAPI <- fromJSON(fullURL)
-  # Select only the data.
+  # Select only the data from the JSON output.
   output <- outputAPI$data
   
-  # Convert any columns that should be numeric to numeric.
+  # Convert any columns that should be numeric to numeric format.
   output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
   # Return the output from the request.
@@ -307,12 +302,12 @@ The `skaterRecords` function returns the stats for all the non-goalie players wh
 ```{r}
 skaterRecords <- function(team){
   ###
-  # This functions returns a dataframe with the skater records for a team.
+  # This functions returns a data.frame with the skater records for a team.
   ###
   
-  # If team is a "character" type, try to look up the team id.
+  # If team is a "character" type, try to look up the franchise id.
   if (typeof(team) == "character"){
-    teamId = findFranchiseId(team)
+    teamId = findId(team, "franchise")
   }
   # If team is an integer, set teamId equal to team.
   else if ((typeof(team) == "double") & (team %% 1 == 0)){
@@ -320,7 +315,7 @@ skaterRecords <- function(team){
   }
   # Otherwise, throw an error.
   else {
-    message <- paste("Please pass a team id (integer) or a full team name",
+    message <- paste("Please pass a franchise id (integer) or a full team name",
                      "e.g. 'Boston Bruins'.")
     stop(message)
   }
@@ -332,10 +327,10 @@ skaterRecords <- function(team){
   
   # Get the API output.
   outputAPI <- fromJSON(fullURL)
-  # Select only the data.
+  # Select only the data from the JSON output.
   output <- outputAPI$data
   
-  # Convert any columns that should be numeric to numeric.
+  # Convert any columns that should be numeric to numeric format.
   output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
   # Return the output from the request.
@@ -350,12 +345,12 @@ This function gets info for a franchise, like their retired numbers. It takes on
 ```{r}
 franchiseDetail <- function(team){
   ###
-  # This functions returns a dataframe with the data for a team.
+  # This functions returns a data.frame with the data for a team.
   ###
   
   # If team is a "character" type, try to look up the team id.
   if (typeof(team) == "character"){
-    teamId = findTeamId(team)
+    teamId = findId(team, "team")
   }
   # If team is an integer, set teamId equal to team.
   else if ((typeof(team) == "double") & (team %% 1 == 0)){
@@ -375,10 +370,10 @@ franchiseDetail <- function(team){
   
   # Get the API output.
   outputAPI <- fromJSON(fullURL)
-  # Select only the data.
+  # Select only the data from the JSON output.
   output <- outputAPI$data
   
-  # Convert any columns that should be numeric to numeric.
+  # Convert any columns that should be numeric to numeric format.
   output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
   # Return the output from the request.
@@ -388,7 +383,7 @@ franchiseDetail <- function(team){
 
 ## `seasonStats`
 
-I wrote this function to interact with the `franchise` endpoint of the NHL Stats API. It returns a `data.frame` containing the current season stats. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
+This function returns a `data.frame` containing stats for the current season. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
 
 ```{r}
 seasonStats <- function(team="all", raw=FALSE){
@@ -413,7 +408,7 @@ seasonStats <- function(team="all", raw=FALSE){
   }
   # If team is a "character" type, try to look up the team id.
   else if (typeof(team) == "character"){
-    teamId = findTeamId(team)
+    teamId = findId(team, "team")
   }
   # If team is an integer, set teamId equal to team.
   else if ((typeof(team) == "double") & (team %% 1 == 0)){
@@ -426,31 +421,36 @@ seasonStats <- function(team="all", raw=FALSE){
     stop(message)
   }
   
-  # Paste together the URL.
+  # Paste together the endpoint URL from its components.
   baseURL <- "https://statsapi.web.nhl.com/api/v1/teams/"
   modifier <- "?expand=team.stats"
   fullURL <- paste0(baseURL, teamId, modifier)
   # Get the data from the endpoint.
   outputAPI <- fromJSON(fullURL, flatten=TRUE)
   
+  # If the user doesn't want every team's data, execute this chunk.
   if (team != "all"){
     
     # If raw is FALSE, give back only the stats.
     if (raw == FALSE){
+      # Navigate through the columns and list indices to select the stats only.
       teamStats <- outputAPI$teams$teamStats[[1]]$splits[[1]][1,]
       # Convert any columns that should be numeric to numeric.
       teamStats <- suppressMessages(as.data.frame(lapply(teamStats,
                                                          convertToNumeric)))
     }
-    # If the user wants the raw API output, give it to them.
+    # If the user wants the raw API output, give it to them so they can parse
+    # it themselves.
     else {
       teamStats <- outputAPI$teams
     }
   }
+  # Otherwise, return them the data for all teams.
   else {
     
     # If raw is FALSE, give back only the stats.
     if (raw == FALSE){
+      
       # Get the teamStats list where each element is a data.frame.
       output <- outputAPI$teams$teamStats
       # Count the number of teams. The last element is NULL.
@@ -465,17 +465,18 @@ seasonStats <- function(team="all", raw=FALSE){
         # Add the row to teamStats.
         teamStats <- rbind(teamStats, stats)
       }
-    # Convert any columns that should be numeric to numeric.
+    # Convert any columns that should be numeric to numeric format.
     teamStats <- suppressMessages(as.data.frame(lapply(teamStats,
                                                        convertToNumeric)))
     }
-    # If the user wants the raw API output, give it to them.
+    # If the user wants the raw API output, give it to them so they can parse 
+    # it themselves.
     else {
       teamStats <- outputAPI$teams
     }
   }
   
-  # Return team stats.
+  # Return teamStats.
   return(teamStats)
 }
 ```
@@ -518,9 +519,12 @@ nhlAPI <- function(func, ...){
   else {
     stop("Argument for func is not valid!")
   }
+  
+  # Return the output from the appropriate function.
   return(output)
 }
 ```
+
 
 # Data Exploration
 
@@ -538,7 +542,7 @@ Two variables of interest to me are shots per game and shooting percentage. I'm 
 ```{r}
 # Add a column for the win percentage.
 currentSeason <- currentSeason %>%
-  mutate(win.percentage = stat.wins / stat.gamesPlayed)
+  mutate(winPercentage = stat.wins / stat.gamesPlayed)
 ```
 
 My guess is these two are positively related to the win percentage. A high shooting percentage means you are fairly likely to score when you shoot. A high number of shots per game likely means you are controlling the puck more than the other team and you have more scoring opportunities, unless you're taking wild shots. Both stats seem like great proxies for offensive power.
@@ -555,29 +559,41 @@ Below I plotted the win percentage against shots per game and shooting percentag
 ```{r}
 # Create a scatter plot of win pct vs. shots per game.
 plot1 <- ggplot(currentSeason, aes(stat.shotsPerGame,
-                                   win.percentage,
-                                   color=win.percentage)) + 
+                                   winPercentage,
+                                   color=winPercentage)) + 
+  # Add a scatter plot layer and adjust the size and opaqueness of points.
   geom_point(size=4, alpha=0.75) + 
+  # Add a color gradient for winPercentage.
   scale_color_gradient(low="blue", high="red") + 
+  # Remove the legend because it takes up space.
   theme(legend.position="none") + 
+  # Add a black regression line.
   geom_smooth(method=lm, formula=y~x, color="black") + 
+  # Add labels to the axes.
   scale_x_continuous("Shots per Game") + 
   scale_y_continuous("Win Percentage") + 
+  # Add a title.
   ggtitle("Win Pct. vs. Shots per Game")
 
 # Create a scatter plot of win pct vs. shooting pct.
 plot2 <- ggplot(currentSeason, aes(stat.shootingPctg,
-                                   win.percentage,
-                                   color=win.percentage)) + 
+                                   winPercentage,
+                                   color=winPercentage)) + 
+  # Add a scatter plot layer and adjust the size and opaqueness of points.
   geom_point(size=4, alpha=0.75) + 
+  # Add a color gradient for winPercentage.
   scale_color_gradient(low="blue", high="red") + 
+  # Remove the legend because it takes up space.
   theme(legend.position="none") + 
+  # Add a black regression line.
   geom_smooth(method=lm, formula=y~x, color="black") + 
+  # Add labels to the axes.
   scale_x_continuous("Shooting Percentage") + 
   scale_y_continuous("Win Percentage") + 
+  # Add a title.
   ggtitle("Win Pct. vs. Shooting Pct.")
 
-# Plot them both together.
+# Plot them side-by-side.
 plot_grid(plot1, plot2, ncol=2)
 ```
 
@@ -587,18 +603,22 @@ Now let's look at shooting percentage vs. shots per game. I added a color gradie
 # Create a scatter plot of shooting pct vs. shots per game.
 plot3 <- ggplot(currentSeason, aes(stat.shotsPerGame,
                                    stat.shootingPctg,
-                                   color=win.percentage)) + 
+                                   color=winPercentage)) + 
+  # Add a scatter plot layer and adjust the size and opaqueness of points.
   geom_point(size=4, alpha=0.75) + 
+  # Add a color gradient for winPercentage with an improved label.
   scale_color_gradient(low="blue", high="red", name="Win Pct.") + 
+  # Add labels to the axes.
   scale_x_continuous("Shots per Game") + 
   scale_y_continuous("Shooting Percentage") + 
+  # Add a title.
   ggtitle("Shooting Pct. vs. Shots per Game") 
 
 # Show the plot.
 plot3
 ```
 
-There doesn't appear to be a clear relationship between those two variables, which I thought there might be.
+There doesn't appear to be a clear relationship between those two variables, which I thought there might be. Some interesting finds, but none unexpected.
 
 Now let's look at some stats for the total history of all teams. I called `nhlAPI("teamTotals")` to get this data.
 
@@ -628,13 +648,15 @@ There are `r print(numInactive)` inactive and `r print(numActive)` active teams.
 
 Not all the teams have been around for the same length of time and I want to adjust some stats to be able to compare teams on the same basis. I'm particularly interested in the penalty minutes and records of the teams.
 
-To get numbers on the same basis when the number of games played are so different, I'm calculating the the penalty minutes per game as $\frac{\text{Total Penalty Minutes}}{\text{Total Games Played}}$. I again calculate the win percentage as $\text{Win Percentage} = \frac{\text{Wins}}{\text{Games Played}}$. I'm also interested in how a game being a playoff or regular season game affects penalty minutes because I think the importance of a playoff game might cause changes in the penalty behavior.
+To get numbers on the same basis when the number of games played are so different, I'm calculating the the penalty minutes per game as $\frac{\text{Total Penalty Minutes}}{\text{Total Games Played}}$. I again calculate the win percentage as $\text{Win Percentage} = \frac{\text{Wins}}{\text{Games Played}}$. 
 
-I also created a column, `recordType` that indicates if a team has a winning or losing record. They are classified as having a winning record if $0.5 < \frac{\text{Wins}}{\text{Games Played}}$ and a losing record if $0.5 \geq \frac{\text{Wins}}{\text{Games Played}}$.
+I'm also interested in how a game being a playoff or regular season game affects penalty minutes because I think the importance of a playoff game might cause changes in the penalty behavior.
+
+In addition, I created a column, `recordType` that indicates if a team has a winning or losing record. They are classified as having a winning record if $0.5 < \frac{\text{Wins}}{\text{Games Played}}$ and a losing record if $0.5 \geq \frac{\text{Wins}}{\text{Games Played}}$.
 
 ```{r}
 teamTotalStats <- teamTotalStats %>%
-  # Calculate the penalty minutes per game, win percentage, a text
+  # Add columns for penalty minutes per game, win percentage, a text
   # representation of the game type, and whether a team has a losing or winning
   # record for the game type.
   mutate(penaltyMinutesPerGame = penaltyMinutes / gamesPlayed,
@@ -646,7 +668,7 @@ teamTotalStats <- teamTotalStats %>%
 Below is a table showing the count of active teams with losing and winning records by game type. 
 
 ```{r}
-# Filter for active teams.
+# Filter for active teams by looking for missing values in lastSeasonId.
 activeTeams <- teamTotalStats %>%
   filter((is.na(lastSeasonId) == TRUE))
 
@@ -656,28 +678,37 @@ knitr::kable(table(activeTeams$gameType, activeTeams$recordType),
                            "for Active Franchises"))
 ```
 
-Below is the table showing for inactive teams. It's clear from these tables that the inactive teams were much worse than the teams that are still active. They probably had a difficult time bringing in an audience and selling merchandise because they were so bad. That is likely why they are no longer around. 
+Below is the same table for inactive teams. It's clear from these tables that the inactive teams were much worse than the teams that are still active. They probably had a difficult time bringing in an audience and selling merchandise because they were so bad. That is likely why they are no longer around. 
 
 ```{r}
-# Filter for only inactive teams.
+# Filter for only inactive teams by looking for rows where lastSeasonId is not
+# missing.
 inactiveTeams <- teamTotalStats %>%
   filter((is.na(lastSeasonId) == FALSE))
+
 # Count the number of inactive teams using the number of teams with regular
 # season games.
 numInactiveTeams <- dim(filter(inactiveTeams, gameTypeId == 2))[1]
+
 # Count the number of inactive teams that made it to the playoffs, which is not
-# all of them.
+# all of the inactive teams.
 numInactiveTeamsInPlayoffs <- dim(filter(inactiveTeams, gameTypeId == 3))[1]
+
 # Count the number of inactive teams who did not make the playoffs.
 numDidntMakePlayoffs <- numInactiveTeams - numInactiveTeamsInPlayoffs
+
 # Create an index for the last row in inactive teams.
 currentEndRow <- nrow(inactiveTeams)
+
 # Add as many empty rows to inactiveTeams as teams not making the playoffs.
 inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs),] <- NA
+
 # Teams without playoff data do not have rows for that game type. I'm going to
-# classify them as having losing records in the playoffs.
+# add the proper number of losing records to the dataframe to account for the
+# missing rows for the playoffs.
 inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs), 
               "recordType"] <- "Losing Record"
+
 # To make the table work, I need to make the gameType of these rows "Playoffs".
 inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs), 
               "gameType"] <- "Playoffs"
@@ -688,11 +719,10 @@ knitr::kable(table(inactiveTeams$gameType, inactiveTeams$recordType),
                            "for Inactive Franchises"))
 ```
 
-Going forward, I will look at all teams, regardless of whether they are active or inactive. 
-
-Now let's get a numerical summary of the win percentage by the game type.
+For now, I will keep both inactive and active teams in the data set. Now let's get a numerical summary of the win percentage by the game type.
 
 ```{r}
+# Create a table of summary stats for win percentage by game type.
 winPercSumm <- teamTotalStats %>% 
   # Select the gameType and winPercentage columns.
   select(gameType, winPercentage) %>%
@@ -717,15 +747,21 @@ knitr::kable(winPercSumm,
 Based on the summary stats, the distributions don't seem very different, although win percentages in the playoffs might be more variable. There is at least on franchise that never won a playoff game. Let's visualize the distributions with box plots.
 
 ```{r}
-# Make a plot of franchise win percentage by game type.
+# Make a box plot of franchise win percentage by game type.
 plot4 <- ggplot(teamTotalStats, 
                aes(gameType,
                    winPercentage,
-                   color=gameType)) + geom_boxplot() + 
+                   color=gameType)) +
+  # Add the box plot layer.
+  geom_boxplot() + 
+  # Jitter the points to add a little more info to the boxplot.
   geom_jitter() + 
+  # Add labels to the axes.
   scale_x_discrete("Game Type") + 
   scale_y_continuous("Win Percentage") +
+  # Add a title.
   ggtitle("Franchise Win Percentage by Game Type") + 
+  # Remove the legend because it isn't needed.
   theme(legend.position="none")
 
 # Display the plot.
@@ -737,6 +773,7 @@ There is definitely a difference in spread in win percentage between playoff and
 Now let's look at a numeric summary of per game penalty minutes by game type. Playoff games seem to have a higher central tendency and be more variable in the penalty minutes per game.
 
 ```{r}
+# Create a table of summary stats for penalty minutes per game by game type.
 penMinSumm <- teamTotalStats %>% 
   # Select the gameType and penaltyMinutesPerGame columns.
   select(gameType, penaltyMinutesPerGame) %>%
@@ -765,13 +802,18 @@ The histogram below provides an alternative to the box plot for visualizing the 
 # Make a histogram of penalty minutes per game by game type.
 plot5 <- ggplot(teamTotalStats,aes(penaltyMinutesPerGame, y=..density..,
                                    fill=gameType)) + 
-    geom_histogram(data=subset(teamTotalStats,gameType == 'Regular Season'),
-                   bins=10, alpha = 0.5) +
-    geom_histogram(data=subset(teamTotalStats,gameType == 'Playoffs'),
-                   bins=10, alpha = 0.5) + 
+  # Add a semi-transparent histogram with 10 bins for regular season games.
+  geom_histogram(data=subset(teamTotalStats,gameType == 'Regular Season'),
+                 bins=10, alpha = 0.5) +
+  # Add a semi-transparent histogram with 10 bins for playoff games.
+  geom_histogram(data=subset(teamTotalStats,gameType == 'Playoffs'),
+                 bins=10, alpha = 0.5) + 
+  # Add a better legend label.
   guides(fill=guide_legend(title="Game Type")) +
+  # Add labels to the axes.
   scale_x_continuous("Penalty Minutes per Game") + 
   scale_y_continuous("Density") +
+  # Add a title.
   ggtitle("Histogram of Penalty Minutes per Game by Game Type")
 
 # Display the plot.
@@ -800,14 +842,18 @@ plot6 <- teamTotalStats %>%
   mutate(sortedTriCode = factor(triCode,
                                 levels=mostPenaltyMinsRegSeason[["triCode"]],
                                 ordered=TRUE))  %>%
-  # Create a bar chart.
+  # Create a bar chart with a fill gradient for penaltyMinutesPerGame.
   ggplot(aes(sortedTriCode, penaltyMinutesPerGame, 
              fill=penaltyMinutesPerGame)) +
   geom_col() + 
+  # Rotate the x-axis labls 90 degrees and remove the legend.
   theme(axis.text.x=element_text(angle=90), legend.position="none") +
+  # Change the fill gradient to go from blue to red.
   scale_fill_gradient(low="blue", high="red") +
+  # Set the axes labels.
   scale_x_discrete("Team") + 
   scale_y_continuous("Penalty Minutes per Game") +
+  # Add a title.
   ggtitle("Penalty Minutes per Regular Season Game by Team")
 
 # Display the plot.
@@ -826,14 +872,18 @@ plot7 <- teamTotalStats %>%
   mutate(sortedTriCode = factor(triCode,
                                 levels=mostPenaltyMinsRegSeason[["triCode"]],
                                 ordered=TRUE))  %>%
-  # Create a bar chart.
+  # Create a bar chart with a fill gradient for penaltyMinutesPerGame.
   ggplot(aes(sortedTriCode, penaltyMinutesPerGame, 
              fill=penaltyMinutesPerGame)) +
   geom_col() + 
+  # Rotate the x-axis labls 90 degrees and remove the legend.
   theme(axis.text.x=element_text(angle=90), legend.position="none") +
+  # Change the fill gradient to go from blue to red.
   scale_fill_gradient(low="blue", high="red") +
+  # Set the axes labels.
   scale_x_discrete("Team") + 
   scale_y_continuous("Penalty Minutes per Game") +
+  # Add a title.
   ggtitle("Penalty Minutes per Playoff Game by Team")
 
 # Display the plot.
@@ -853,12 +903,17 @@ plot8 <- teamTotalStats %>%
   spread(gameType, penaltyMinutesPerGame) %>%
   # Create a scatter plot with a regression line.
   ggplot(aes(`Regular Season`, Playoffs)) +
+  # Add a scatter plot layer and adjust the size and opaqueness of points.
   geom_point(alpha=0.75,  color="blue") + 
+  # Add a red regression line.
   geom_smooth(method=lm, formula=y~x, color="red") +
+  # Set the axes labels.
   scale_x_continuous("Regular Penalty Min. per Game") +
   scale_y_continuous("Playoffs Penalty Min. per Game") + 
+  # Add a title.
   ggtitle("Playoff vs. Regular Season Penalty Min. Per Game (Active Teams)")
 
+# Display the plot.
 plot8
 ```
 
@@ -870,18 +925,27 @@ I created a scatter plot for the win percentage vs the penalty minutes per game 
 
 ```{r}
 plot9 <- teamTotalStats %>%
-  mutate(sortedTriCode  = factor(triCode,
-                                 levels=mostPenaltyMinsRegSeason[["triCode"]],
-                                    ordered=TRUE)) %>%
-  select(sortedTriCode, gameType, penaltyMinutesPerGame, winPercentage) %>%
+  # Select the triCode, gameType, penaltyMinutesPerGame, and winPercentage
+  # columns.
+  select(triCode, gameType, penaltyMinutesPerGame, winPercentage) %>%
+  # Create a scatter plot of winPercentage vs. penaltyMinutesPerGame, coloring
+  # by game type.
   ggplot(aes(penaltyMinutesPerGame, winPercentage, color=gameType)) +
-  geom_point(size=2) + geom_smooth(method="lm", formula="y~poly(x, 2)") + 
+  # Add a scatter plot layer and adjust the size.
+  geom_point(size=2) + 
+  # Add a quadratic regression line.
+  geom_smooth(method="lm", formula="y~poly(x, 2)") + 
+  # Set the axes labels.
   scale_x_continuous("Penalty Minutes per Game") + 
   scale_y_continuous("Win Percentage") + 
-  theme(legend.position = "none") + 
+  # The legend isn't needed, so remove it.
+  theme(legend.position="none") + 
+  # Add a title
   ggtitle("Win Percentage vs. Penalty Minutes per Game by Game Type") + 
+  # Break out the plots by game type.
   facet_wrap(~gameType)
 
+# Display the plot.
 plot9
 ```
 
@@ -890,8 +954,7 @@ As you can see, the relationship between the win percentage and penalty minutes 
 I do not know much about hockey, but it seems like there is a strategy to taking penalties, even if it gives the other team a power play opportunity. Let's test for the quadratic relationship a little more formally with a regression.
 
 ```{r}
-# Create a model regressing win percentage on game type and penalty minutes
-# per game for playoff games.
+# Create a model regressing win percentage on penalty minutes per game.
 winPercMod <- lm(winPercentage ~ poly(penaltyMinutesPerGame, 2),
                  data=teamTotalStats)
 
@@ -900,7 +963,9 @@ winVarExplainedPerc <- round(100*summary(winPercMod)[[8]],1)
 
 # Create a table of the regression coefficients.
 winPercMod %>%
+  # Pass the model through the tidy() function.
   tidy() %>%
+  # Pass the tidied model output to a table and format it.
   knitr::kable(
     caption=paste("Coefficient summary of Win Perc. regressed on",
                   "Penalty Min. per Game"),
@@ -909,7 +974,7 @@ winPercMod %>%
   )
 ```
 
-Given the t-statistics for the regression coefficients, a quadratic relationship appears reasonable. This model explains `r print(paste0(winVarExplainedPerc, "%"))` of the variation in win percentage. This is an interesting find!
+Given the t-statistics for the quadratic term in the regression, a quadratic relationship appears reasonable. This model explains `r print(paste0(winVarExplainedPerc, "%"))` of the variation in win percentage, so there is still a fair amount of variance you would want to account for in a predictive model. Still, this is an interesting find!
 
 # Conclusions
 
