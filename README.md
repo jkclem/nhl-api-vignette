@@ -871,7 +871,7 @@ winPercSumm <- teamTotalStats %>%
 
 # Display a table of the summary stats.
 knitr::kable(winPercSumm, 
-             caption="Summary Statistics for win percentage by game type",
+             caption="Summary Statistics for Win Percentage by Game Type",
              digits=2)
 ```
 
@@ -880,7 +880,7 @@ knitr::kable(winPercSumm,
 | Playoffs       | 0.00 |         0.37 |   0.46 | 0.42 |         0.52 | 0.59 |      0.16 |
 | Regular Season | 0.09 |         0.37 |   0.44 | 0.40 |         0.47 | 0.59 |      0.10 |
 
-Summary Statistics for win percentage by game type
+Summary Statistics for Win Percentage by Game Type
 
 Based on the summary stats, the distributions don’t seem very different,
 although win percentages in the playoffs might be more variable. There
@@ -1197,7 +1197,7 @@ interact with some of the NHL API’s endpoints, retrieved some of the
 data, and explored it using tables, numerical summaries, and data
 visualization. I found some unsurprising things, like shots per game and
 shooting percentage are related to win percentage. I also found some
-surprising things, namely penalty minutes per game has a quadratic
-relationship with win percentage.
+surprising (to me) things, namely penalty minutes per game has a
+quadratic relationship with win percentage.
 
 Most importantly, I hope my code helps you with interacting with APIs!

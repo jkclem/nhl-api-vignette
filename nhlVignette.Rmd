@@ -754,7 +754,7 @@ winPercSumm <- teamTotalStats %>%
 
 # Display a table of the summary stats.
 knitr::kable(winPercSumm, 
-             caption="Summary Statistics for win percentage by game type",
+             caption="Summary Statistics for Win Percentage by Game Type",
              digits=2)
 ```
 
@@ -999,7 +999,7 @@ Given the t-statistics for the quadratic term in the regression, a quadratic rel
 
 # Wrap-Up
 
-To summarize everything I did in this vignette, I built functions to interact with some of the NHL API's endpoints, retrieved some of the data, and explored it using tables, numerical summaries, and data visualization. I found some unsurprising things, like shots per game and shooting percentage are related to win percentage. I also found some surprising things, namely penalty minutes per game has a quadratic relationship with win percentage.
+To summarize everything I did in this vignette, I built functions to interact with some of the NHL API's endpoints, retrieved some of the data, and explored it using tables, numerical summaries, and data visualization. I found some unsurprising things, like shots per game and shooting percentage are related to win percentage. I also found some surprising (to me) things, namely penalty minutes per game has a quadratic relationship with win percentage.
 
 Most importantly, I hope my code helps you with interacting with APIs!
 
