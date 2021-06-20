@@ -3,6 +3,21 @@ Interacting with APIs: Example with the NHL API
 John Clements
 6/15/2021
 
+-   [Requirements](#requirements)
+-   [API Interaction Functions](#api-interaction-functions)
+    -   [`convertToNumeric`](#converttonumeric)
+    -   [`franchise`](#franchise)
+    -   [`teamTotals`](#teamtotals)
+    -   [`findId`](#findid)
+    -   [`seasonRecords`](#seasonrecords)
+    -   [`goalieRecords`](#goalierecords)
+    -   [`skaterRecords`](#skaterrecords)
+    -   [`franchiseDetail`](#franchisedetail)
+    -   [`seasonStats`](#seasonstats)
+    -   [`nhlAPI`](#nhlapi)
+-   [Data Exploration](#data-exploration)
+-   [Wrap-Up](#wrap-up)
+
 This document is a vignette to show how to retrieve data from an
 [API](https://en.wikipedia.org/wiki/API). To demonstrate, I’ll be
 interacting with the NHL API. I’m going to build a few functions to
@@ -585,9 +600,9 @@ currentSeason <- nhlAPI("seasonStats")
 
 Two variables of interest to me are shots per game and shooting
 percentage. I’m interested in how these two stats relate to a team’s win
-percentage. This variable doesn’t exist, so I need to calculate it. The
-formula is
-$\\text{Win Percentage} = \\frac{\\text{Wins}}{\\text{Games Played}}$.
+percentage. This variable doesn’t exist, so I need to calculate it. I
+define this as the number of wins divided by the total number of games
+played.
 
 ``` r
 # Add a column for the win percentage.
@@ -602,7 +617,7 @@ the puck more than the other team and you have more scoring
 opportunities, unless you’re taking wild shots. Both stats seem like
 great proxies for offensive power.
 
-![](README_files/figure-gfm/unnamed-chunk-252-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
 Below I plotted the win percentage against shots per game and shooting
 percentage. I added a regression line as well. As expected, both are
@@ -649,7 +664,7 @@ plot2 <- ggplot(currentSeason, aes(stat.shootingPctg,
 plot_grid(plot1, plot2, ncol=2)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-253-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
 
 Now let’s look at shooting percentage vs. shots per game. I added a
 color gradient for the win percentage.
@@ -673,7 +688,7 @@ plot3 <- ggplot(currentSeason, aes(stat.shotsPerGame,
 plot3
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-254-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
 
 There doesn’t appear to be a clear relationship between those two
 variables, which I thought there might be. Some interesting finds, but
@@ -713,10 +728,10 @@ I’m particularly interested in the penalty minutes and records of the
 teams.
 
 To get numbers on the same basis when the number of games played are so
-different, I’m calculating the the penalty minutes per game as
-$\\frac{\\text{Total Penalty Minutes}}{\\text{Total Games Played}}$. I
-again calculate the win percentage as
-$\\text{Win Percentage} = \\frac{\\text{Wins}}{\\text{Games Played}}$.
+different, I’m calculating the the penalty minutes per game as total
+penalty minutes divided by the total games played. I again calculate the
+win percentage as the number of wins divided by the number of games
+played.
 
 I’m also interested in how a game being a playoff or regular season game
 affects penalty minutes because I think the importance of a playoff game
@@ -871,7 +886,7 @@ plot4 <- ggplot(teamTotalStats,
 plot4
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-261-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
 There is definitely a difference in spread in win percentage between
 playoff and regular season games. Even if they are close in central
@@ -909,7 +924,7 @@ knitr::kable(penMinSumm,
 
 | gameType       | Min. | 1st Quartile | Median |  Mean | 3rd Quartile |   Max | Std. Dev. |
 |:---------------|-----:|-------------:|-------:|------:|-------------:|------:|----------:|
-| Playoffs       |  5.0 |        11.92 |  14.52 | 15.75 |        18.59 | 30.42 |      5.81 |
+| Playoffs       |  5.0 |        11.92 |  14.52 | 15.74 |        18.56 | 30.42 |      5.81 |
 | Regular Season |  4.5 |        10.72 |  13.13 | 13.00 |        15.26 | 21.51 |      3.64 |
 
 Summary Statistics for Penalty Minutes per Game by Game Type
@@ -941,7 +956,7 @@ plot5 <- ggplot(teamTotalStats,aes(penaltyMinutesPerGame, y=..density..,
 plot5
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-263-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->
 
 I’m curious as to which teams spend the most time in the penalty box per
 game. I filtered for active teams and regular season games and made a
@@ -986,7 +1001,7 @@ plot6 <- teamTotalStats %>%
 plot6
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-264-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
 
 It seems the Philly Fliers are as rowdy as Philly sports fans. I
 produced the same bar plot again, but this time for playoff games. I
@@ -1022,7 +1037,7 @@ plot7 <- teamTotalStats %>%
 plot7
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-265-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
 
 The order did not change much, so there is a correlation between regular
 season penalty time and playoff penalty time. Let’s look at a scatter
@@ -1054,7 +1069,7 @@ plot8 <- teamTotalStats %>%
 plot8
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-266-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
 
 Although the positive correlation is not very surprising, I did not
 expect the correlation to be that tight.
@@ -1095,7 +1110,7 @@ plot9 <- teamTotalStats %>%
 plot9
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-267-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
 
 As you can see, the relationship between the win percentage and penalty
 minutes per game is not exactly tidy, but there does seem to be a
@@ -1118,25 +1133,33 @@ winPercMod <- lm(winPercentage ~ poly(penaltyMinutesPerGame, 2),
 winVarExplainedPerc <- round(100*summary(winPercMod)[[8]],1)
 
 # Create a table of the regression coefficients.
-winPercMod %>%
+tidywinPercModSumm <- winPercMod %>%
   # Pass the model through the tidy() function.
-  tidy() %>%
-  # Pass the tidied model output to a table and format it.
-  knitr::kable(
-    caption=paste("Coefficient summary of Win Perc. regressed on",
-                  "Penalty Min. per Game"),
-    col.names = c("Predictor", "Est. Coef.", "SE", "t", "P(|t| > 0)"),
-    digits=c(0, 2, 3, 2, 3)
-  )
+  tidy()
+
+# Rename the variables for improved printing.
+tidywinPercModSumm[1, "term"] = "Intercept"
+tidywinPercModSumm[2, "term"] = "Penalty Min. per Game"
+tidywinPercModSumm[3, "term"] = "(Penalty Min. per Game)^2"
+
+# Pass the tidied model output to a table and format it.
+knitr::kable(
+  tidywinPercModSumm,
+  caption=paste("Coefficient summary of Win Perc. Regressed on",
+                "Penalty Min. per Game with Quadratic Term"),
+  col.names = c("Variable", "Est. Coef.", "SE", "t", "P(|t| > 0)"),
+  digits=c(0, 2, 3, 2, 3)
+)
 ```
 
-| Predictor                       | Est. Coef. |    SE |     t | P(\|t\| &gt; 0) |
-|:--------------------------------|-----------:|------:|------:|----------------:|
-| (Intercept)                     |       0.41 | 0.011 | 36.65 |           0.000 |
-| poly(penaltyMinutesPerGame, 2)1 |       0.20 | 0.114 |  1.74 |           0.085 |
-| poly(penaltyMinutesPerGame, 2)2 |      -0.62 | 0.114 | -5.39 |           0.000 |
+| Variable                  | Est. Coef. |    SE |     t | P(\|t\| &gt; 0) |
+|:--------------------------|-----------:|------:|------:|----------------:|
+| Intercept                 |       0.41 | 0.011 | 36.65 |           0.000 |
+| Penalty Min. per Game     |       0.20 | 0.114 |  1.74 |           0.085 |
+| (Penalty Min. per Game)^2 |      -0.62 | 0.114 | -5.39 |           0.000 |
 
-Coefficient summary of Win Perc. regressed on Penalty Min. per Game
+Coefficient summary of Win Perc. Regressed on Penalty Min. per Game with
+Quadratic Term
 
 Given the t-statistics for the quadratic term in the regression, a
 quadratic relationship appears reasonable. This model explains 23.9% of

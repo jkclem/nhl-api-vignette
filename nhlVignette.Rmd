@@ -3,9 +3,8 @@ title: "Interacting with APIs: Example with the NHL API"
 author: "John Clements"
 date: "6/15/2021"
 output: 
-  html_document:
+  github_document:
     toc: true
-    code_folding: show
 ---
 
 ```{r setup, include=FALSE}
@@ -29,7 +28,7 @@ In addition to those packages, I used the following packages in the rest of the 
 - [`imager`](https://cran.r-project.org/web/packages/imager/): loading in images
 - [`broom`](https://cran.r-project.org/web/packages/broom/vignettes/broom.html):
 tidying up a regression output for display
-- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html): displaying tables
+- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html): displaying tables in a markdown friendly way
 
 ```{r warning=FALSE, message=FALSE}
 # Load in the packages.
@@ -71,13 +70,13 @@ convertToNumeric <- function(vec){
 
 ## `franchise`
 
-I wrote this function to interact with the `franchise` endpoint of the NHL Records API. It returns a `data.frame` containing the franchise and current team Id numbers, the name and abbreviations of teams, and their first and last seasons. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the **most recent team Id** (e.g. `1` for the New Jersey Devils).
+I wrote this function to interact with the `franchise` endpoint of the NHL Records API. It returns a `data.frame` containing the franchise and current team Id numbers, the name and abbreviations of teams, and the first and last seasons for every *franchise* in NHL history. Some franchises have changed team names over the years as they change location. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the **franchise Id** (e.g. `23` for the New Jersey Devils).
 
 ```{r}
 franchise <- function(team="all"){
   ###
   # This functions returns a data.frame with metadata on NHL teams. It can also
-  # return those columns for a single team if a team ID or name is passed.
+  # return those columns for a single team if a franchise ID or name is passed.
   ###
   
   # Get the franchise data from the franchises endpoint.
@@ -94,7 +93,7 @@ franchise <- function(team="all"){
     # If team is in the id column, subset output for just that row.
     if (team %in% output$id){
       output <- output %>%
-        filter(mostRecentTeamId == team)
+        filter(id == team)
     }
     # If team is in the fullName column, subset output for just that row.
     else if (team %in% output$fullName){
@@ -183,17 +182,17 @@ This is a helper function to look up the most recent team Id or franchise Id for
 ```{r}
 findId <- function(teamName, idType){
   
-  # Call the franchise function with the team name so we can look up the 
+  # Call the teamTotals function with the team name so we can look up the 
   # appropriate Id from it.
-  franchiseData <- franchise(teamName)
+  outputAPI <- teamTotals(teamName)
   
   # Retrieve the franchise Id if that is what the idType is.
   if (idType == "franchise"){
-    output <- franchiseData$id
+    output <- outputAPI[1,]$franchiseId
   }
-  # Retrieve the most recent team Id if that is what the idType is.
+  # Retrieve the team Id if that is what the idType is.
   else if (idType == "team"){
-    output <- franchiseData$mostRecentTeamId
+    output <- outputAPI[1,]$teamId
   }
   # Any other argument throws an error.
   else {
@@ -370,6 +369,24 @@ franchiseDetail <- function(team){
   # Select only the data from the JSON output.
   output <- outputAPI$data
   
+  # If the output has no rows after becoming a data.frame, then the team is now
+  # a different team under an active franchise. Then we need to re-run the 
+  # query with the appropriate team Id.
+  if (nrow(as.data.frame(output)) == 0){
+    
+    # Find the most recent team Id for this deprecated team that is in the 
+    # history of the active franchise.
+    teamId <- franchise(findId(team, "franchise"))$mostRecentTeamId
+    
+    # Combine the URL components with teamId for the full url.
+    fullURL <- paste0(baseURL, endpoint, teamId)
+    
+    # Get the API output.
+    outputAPI <- fromJSON(fullURL)
+    # Select only the data from the JSON output.
+    output <- outputAPI$data
+    }
+  
   # Convert any columns that should be numeric to numeric format.
   output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
@@ -380,7 +397,7 @@ franchiseDetail <- function(team){
 
 ## `seasonStats`
 
-This function returns a `data.frame` containing stats for the current season. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the **most recent team Id** (e.g. `1` for the New Jersey Devils).
+This function returns a `data.frame` containing stats for the current season. It takes one argument; `team`, which can either be `"all"`, the full name of an active team (e.g. `"New Jersey Devils"`), or the **most recent team Id** (e.g. `1` for the New Jersey Devils).
 
 ```{r}
 seasonStats <- function(team="all", raw=FALSE){
@@ -522,7 +539,6 @@ nhlAPI <- function(func, ...){
 }
 ```
 
-
 # Data Exploration
 
 Now that we can interact with a few of the endpoints of the NHL API, let's get some data from them.
@@ -534,7 +550,7 @@ First, let's pull current season stats for all teams by calling `nhlAPI("seasonS
 currentSeason <- nhlAPI("seasonStats")
 ```
 
-Two variables of interest to me are shots per game and shooting percentage. I'm interested in how these two stats relate to a team's win percentage. This variable doesn't exist, so I need to calculate it. The formula is $\text{Win Percentage} = \frac{\text{Wins}}{\text{Games Played}}$. 
+Two variables of interest to me are shots per game and shooting percentage. I'm interested in how these two stats relate to a team's win percentage. This variable doesn't exist, so I need to calculate it. I define this as the number of wins divided by the total number of games played. 
 
 ```{r}
 # Add a column for the win percentage.
@@ -645,7 +661,7 @@ There are `r numInactive` inactive and `r numActive` active teams. Almost as man
 
 Not all the teams have been around for the same length of time and I want to adjust some stats to be able to compare teams on the same basis. I'm particularly interested in the penalty minutes and records of the teams.
 
-To get numbers on the same basis when the number of games played are so different, I'm calculating the the penalty minutes per game as $\frac{\text{Total Penalty Minutes}}{\text{Total Games Played}}$. I again calculate the win percentage as $\text{Win Percentage} = \frac{\text{Wins}}{\text{Games Played}}$. 
+To get numbers on the same basis when the number of games played are so different, I'm calculating the the penalty minutes per game as total penalty minutes divided by the total games played. I again calculate the win percentage as the number of wins divided by the number of games played. 
 
 I'm also interested in how a game being a playoff or regular season game affects penalty minutes because I think the importance of a playoff game might cause changes in the penalty behavior.
 
@@ -959,16 +975,23 @@ winPercMod <- lm(winPercentage ~ poly(penaltyMinutesPerGame, 2),
 winVarExplainedPerc <- round(100*summary(winPercMod)[[8]],1)
 
 # Create a table of the regression coefficients.
-winPercMod %>%
+tidywinPercModSumm <- winPercMod %>%
   # Pass the model through the tidy() function.
-  tidy() %>%
-  # Pass the tidied model output to a table and format it.
-  knitr::kable(
-    caption=paste("Coefficient summary of Win Perc. regressed on",
-                  "Penalty Min. per Game"),
-    col.names = c("Predictor", "Est. Coef.", "SE", "t", "P(|t| > 0)"),
-    digits=c(0, 2, 3, 2, 3)
-  )
+  tidy()
+
+# Rename the variables for improved printing.
+tidywinPercModSumm[1, "term"] = "Intercept"
+tidywinPercModSumm[2, "term"] = "Penalty Min. per Game"
+tidywinPercModSumm[3, "term"] = "(Penalty Min. per Game)^2"
+
+# Pass the tidied model output to a table and format it.
+knitr::kable(
+  tidywinPercModSumm,
+  caption=paste("Coefficient summary of Win Perc. Regressed on",
+                "Penalty Min. per Game with Quadratic Term"),
+  col.names = c("Variable", "Est. Coef.", "SE", "t", "P(|t| > 0)"),
+  digits=c(0, 2, 3, 2, 3)
+)
 ```
 
 Given the t-statistics for the quadratic term in the regression, a quadratic relationship appears reasonable. This model explains `r winVarExplainedPerc`% of the variance in win percentage, so there is still a fair amount of variance you would want to account for in a predictive model. Still, this is an interesting find!
@@ -978,6 +1001,5 @@ Given the t-statistics for the quadratic term in the regression, a quadratic rel
 To summarize everything I did in this vignette, I built functions to interact with some of the NHL API's endpoints, retrieved some of the data, and explored it using tables, numerical summaries, and data visualization. I found some unsurprising things, like shots per game and shooting percentage are related to win percentage. I also found some surprising things, namely penalty minutes per game has a quadratic relationship with win percentage.
 
 Most importantly, I hope my code helps you with interacting with APIs!
-
 
 
