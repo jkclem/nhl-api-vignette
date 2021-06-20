@@ -104,7 +104,7 @@ franchise <- function(team="all"){
     else {
       message <- paste("ERROR: Argument for team was not found in either",
                        "the fullName or id columns. Try franchise('all') to",
-                       "find the team you're looking for.")
+                       "find the franchise you're looking for.")
       stop(message)
     }
   }
@@ -124,7 +124,7 @@ franchise <- function(team="all"){
 
 ## `teamTotals`
 
-I wrote this function to interact with the `franchise-team-totals` endpoint of the NHL Records API. It returns a large number of statistics for the entire history of a team for both regular season and playoff games. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the **most recent team Id** (e.g. `1` for the New Jersey Devils).
+I wrote this function to interact with the `franchise-team-totals` endpoint of the NHL Records API. It returns a large number of statistics for the entire history of a team for both regular season and playoff games. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the **team Id** (e.g. `1` for the New Jersey Devils).
 
 ```{r}
 teamTotals <- function(team="all"){
@@ -633,7 +633,7 @@ plot3
 
 There doesn't appear to be a clear relationship between those two variables, which I thought there might be. Some interesting finds, but none unexpected.
 
-Now let's look at some stats for the total history of all teams. I called `nhlAPI("teamTotals")` to get this data.
+Now let's look at some stats for the total history of all teams who have played. Note that some of these teams belong to the same franchise. I treat teams that belong to the same franchise as separate (e.g. the Colorado Rockies and the New Jersey Devils). I called `nhlAPI("teamTotals")` to get this data.
 
 ```{r}
 # Get some stats for the total history of a team.
