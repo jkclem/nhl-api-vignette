@@ -53,15 +53,6 @@ of the document:
 -   [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html):
     displaying tables in a markdown friendly way
 
-``` r
-# Load in the packages.
-library(tidyverse)
-library(jsonlite)
-library(cowplot)
-library(imager)
-library(broom)
-```
-
 # API Interaction Functions
 
 Here is where I define the functions to interact with the [NHL Records
