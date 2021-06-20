@@ -51,7 +51,7 @@ of the document:
 -   [`broom`](https://cran.r-project.org/web/packages/broom/vignettes/broom.html):
     tidying up a regression output for display
 -   [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html):
-    displaying tables
+    displaying tables in a markdown friendly way
 
 ``` r
 # Load in the packages.
@@ -103,16 +103,18 @@ convertToNumeric <- function(vec){
 
 I wrote this function to interact with the `franchise` endpoint of the
 NHL Records API. It returns a `data.frame` containing the franchise and
-current team Id numbers, the name and abbreviations of teams, and their
-first and last seasons. It takes one argument; `team`, which can either
-be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the
-**most recent team Id** (e.g. `1` for the New Jersey Devils).
+current team Id numbers, the name and abbreviations of teams, and the
+first and last seasons for every *franchise* in NHL history. Some
+franchises have changed team names over the years as they change
+location. It takes one argument; `team`, which can either be `"all"`,
+the full name of a team (e.g. `"New Jersey Devils"`), or the **franchise
+Id** (e.g. `23` for the New Jersey Devils).
 
 ``` r
 franchise <- function(team="all"){
   ###
   # This functions returns a data.frame with metadata on NHL teams. It can also
-  # return those columns for a single team if a team ID or name is passed.
+  # return those columns for a single team if a franchise ID or name is passed.
   ###
   
   # Get the franchise data from the franchises endpoint.
@@ -129,7 +131,7 @@ franchise <- function(team="all"){
     # If team is in the id column, subset output for just that row.
     if (team %in% output$id){
       output <- output %>%
-        filter(mostRecentTeamId == team)
+        filter(id == team)
     }
     # If team is in the fullName column, subset output for just that row.
     else if (team %in% output$fullName){
@@ -140,7 +142,7 @@ franchise <- function(team="all"){
     else {
       message <- paste("ERROR: Argument for team was not found in either",
                        "the fullName or id columns. Try franchise('all') to",
-                       "find the team you're looking for.")
+                       "find the franchise you're looking for.")
       stop(message)
     }
   }
@@ -164,8 +166,8 @@ I wrote this function to interact with the `franchise-team-totals`
 endpoint of the NHL Records API. It returns a large number of statistics
 for the entire history of a team for both regular season and playoff
 games. It takes one argument; `team`, which can either be `"all"`, the
-full name of a team (e.g. `"New Jersey Devils"`), or the **most recent
-team Id** (e.g. `1` for the New Jersey Devils).
+full name of a team (e.g. `"New Jersey Devils"`), or the **team Id**
+(e.g. `1` for the New Jersey Devils).
 
 ``` r
 teamTotals <- function(team="all"){
@@ -226,17 +228,17 @@ appropriate Id number for a API endpoint.
 ``` r
 findId <- function(teamName, idType){
   
-  # Call the franchise function with the team name so we can look up the 
+  # Call the teamTotals function with the team name so we can look up the 
   # appropriate Id from it.
-  franchiseData <- franchise(teamName)
+  outputAPI <- teamTotals(teamName)
   
   # Retrieve the franchise Id if that is what the idType is.
   if (idType == "franchise"){
-    output <- franchiseData$id
+    output <- outputAPI[1,]$franchiseId
   }
-  # Retrieve the most recent team Id if that is what the idType is.
+  # Retrieve the team Id if that is what the idType is.
   else if (idType == "team"){
-    output <- franchiseData$mostRecentTeamId
+    output <- outputAPI[1,]$teamId
   }
   # Any other argument throws an error.
   else {
@@ -428,6 +430,24 @@ franchiseDetail <- function(team){
   # Select only the data from the JSON output.
   output <- outputAPI$data
   
+  # If the output has no rows after becoming a data.frame, then the team is now
+  # a different team under an active franchise. Then we need to re-run the 
+  # query with the appropriate team Id.
+  if (nrow(as.data.frame(output)) == 0){
+    
+    # Find the most recent team Id for this deprecated team that is in the 
+    # history of the active franchise.
+    teamId <- franchise(findId(team, "franchise"))$mostRecentTeamId
+    
+    # Combine the URL components with teamId for the full url.
+    fullURL <- paste0(baseURL, endpoint, teamId)
+    
+    # Get the API output.
+    outputAPI <- fromJSON(fullURL)
+    # Select only the data from the JSON output.
+    output <- outputAPI$data
+    }
+  
   # Convert any columns that should be numeric to numeric format.
   output <- suppressMessages(as.data.frame(lapply(output, convertToNumeric)))
   
@@ -440,8 +460,8 @@ franchiseDetail <- function(team){
 
 This function returns a `data.frame` containing stats for the current
 season. It takes one argument; `team`, which can either be `"all"`, the
-full name of a team (e.g. `"New Jersey Devils"`), or the **most recent
-team Id** (e.g. `1` for the New Jersey Devils).
+full name of an active team (e.g. `"New Jersey Devils"`), or the **most
+recent team Id** (e.g. `1` for the New Jersey Devils).
 
 ``` r
 seasonStats <- function(team="all", raw=FALSE){
@@ -617,7 +637,7 @@ the puck more than the other team and you have more scoring
 opportunities, unless you’re taking wild shots. Both stats seem like
 great proxies for offensive power.
 
-![](README_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-65-1.png)<!-- -->
 
 Below I plotted the win percentage against shots per game and shooting
 percentage. I added a regression line as well. As expected, both are
@@ -664,7 +684,7 @@ plot2 <- ggplot(currentSeason, aes(stat.shootingPctg,
 plot_grid(plot1, plot2, ncol=2)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-66-1.png)<!-- -->
 
 Now let’s look at shooting percentage vs. shots per game. I added a
 color gradient for the win percentage.
@@ -688,14 +708,17 @@ plot3 <- ggplot(currentSeason, aes(stat.shotsPerGame,
 plot3
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-67-1.png)<!-- -->
 
 There doesn’t appear to be a clear relationship between those two
 variables, which I thought there might be. Some interesting finds, but
 none unexpected.
 
-Now let’s look at some stats for the total history of all teams. I
-called `nhlAPI("teamTotals")` to get this data.
+Now let’s look at some stats for the total history of all teams who have
+played. Note that some of these teams belong to the same franchise. I
+treat teams that belong to the same franchise as separate (e.g. the
+Colorado Rockies and the New Jersey Devils). I called
+`nhlAPI("teamTotals")` to get this data.
 
 ``` r
 # Get some stats for the total history of a team.
@@ -886,7 +909,7 @@ plot4 <- ggplot(teamTotalStats,
 plot4
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-74-1.png)<!-- -->
 
 There is definitely a difference in spread in win percentage between
 playoff and regular season games. Even if they are close in central
@@ -956,7 +979,7 @@ plot5 <- ggplot(teamTotalStats,aes(penaltyMinutesPerGame, y=..density..,
 plot5
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-76-1.png)<!-- -->
 
 I’m curious as to which teams spend the most time in the penalty box per
 game. I filtered for active teams and regular season games and made a
@@ -1001,7 +1024,7 @@ plot6 <- teamTotalStats %>%
 plot6
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-77-1.png)<!-- -->
 
 It seems the Philly Fliers are as rowdy as Philly sports fans. I
 produced the same bar plot again, but this time for playoff games. I
@@ -1037,7 +1060,7 @@ plot7 <- teamTotalStats %>%
 plot7
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-40-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-78-1.png)<!-- -->
 
 The order did not change much, so there is a correlation between regular
 season penalty time and playoff penalty time. Let’s look at a scatter
@@ -1069,7 +1092,7 @@ plot8 <- teamTotalStats %>%
 plot8
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
 
 Although the positive correlation is not very surprising, I did not
 expect the correlation to be that tight.
@@ -1110,7 +1133,7 @@ plot9 <- teamTotalStats %>%
 plot9
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-80-1.png)<!-- -->
 
 As you can see, the relationship between the win percentage and penalty
 minutes per game is not exactly tidy, but there does seem to be a
