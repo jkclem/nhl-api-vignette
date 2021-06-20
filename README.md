@@ -762,8 +762,8 @@ might cause changes in the penalty behavior.
 
 In addition, I created a column, `recordType` that indicates if a team
 has a winning or losing record. They are classified as having a winning
-record if $0.5 &lt; \\frac{\\text{Wins}}{\\text{Games Played}}$ and a
-losing record if $0.5 \\geq \\frac{\\text{Wins}}{\\text{Games Played}}$.
+record if win percentage is greater than 0.5 and a losing record
+otherwise.
 
 ``` r
 teamTotalStats <- teamTotalStats %>%

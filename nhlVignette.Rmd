@@ -666,7 +666,7 @@ To get numbers on the same basis when the number of games played are so differen
 
 I'm also interested in how a game being a playoff or regular season game affects penalty minutes because I think the importance of a playoff game might cause changes in the penalty behavior.
 
-In addition, I created a column, `recordType` that indicates if a team has a winning or losing record. They are classified as having a winning record if $0.5 < \frac{\text{Wins}}{\text{Games Played}}$ and a losing record if $0.5 \geq \frac{\text{Wins}}{\text{Games Played}}$.
+In addition, I created a column, `recordType` that indicates if a team has a winning or losing record. They are classified as having a winning record if win percentage is greater than 0.5 and a losing record otherwise.
 
 ```{r}
 teamTotalStats <- teamTotalStats %>%
