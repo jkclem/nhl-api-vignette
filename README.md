@@ -743,13 +743,12 @@ numActive <- sum(teamStatus =="Active")
 numInactive <- sum(teamStatus =="Inactive")
 ```
 
-There are 26 inactive and 31 active teams. Almost as many teams have
-left the NHL than are currently still playing.
+There are 26 inactive and 31 active teams (just a reminder, I treat
+teams that move somewhere else as inactive).
 
-Not all the teams have been around for the same length of time and I
-want to adjust some stats to be able to compare teams on the same basis.
-I’m particularly interested in the penalty minutes and records of the
-teams.
+Not all the teams have the same length tenure and I want to adjust some
+stats to be able to compare teams on the same basis. I’m particularly
+interested in the penalty minutes and records of the teams.
 
 To get numbers on the same basis when the number of games played are so
 different, I’m calculating the the penalty minutes per game as total
