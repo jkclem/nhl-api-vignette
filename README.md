@@ -221,8 +221,9 @@ teamTotals <- function(team="all"){
 ## `findId`
 
 This is a helper function to look up the most recent team Id or
-franchise Id for a full team name (e.g. `findId("Boston Bruins", "team"`
-or `findId("Boston Bruins", "franchise"`). It is used to find the
+franchise Id for a full team name
+(e.g. `findId("Boston Bruins", "team")` or
+`findId("Boston Bruins", "franchise")`). It is used to find the
 appropriate Id number for a API endpoint.
 
 ``` r
@@ -252,9 +253,9 @@ findId <- function(teamName, idType){
 ## `seasonRecords`
 
 The `seasonRecords` function returns the records stats for a single
-team. For example, the most goals scored in a season and the season they
-scored it in. It takes one argument; `team`, which can either be the
-full name of a team (e.g. `"New Jersey Devils"`), or the **franchise
+franchise. For example, the most goals scored in a season and the season
+they scored it in. It takes one argument; `team`, which can either be
+the full name of a team (e.g. `"New Jersey Devils"`), or the **franchise
 Id** (e.g. `23` for the New Jersey Devils).
 
 ``` r
@@ -300,8 +301,8 @@ seasonRecords <- function(team){
 ## `goalieRecords`
 
 The `goalieRecords` function returns the stats for all the goalies
-who’ve played for a single team. For example, the most saves in a game
-and the date of the game. It takes one argument; `team`, which can
+who’ve played for a single franchise. For example, the most saves in a
+game and the date of the game. It takes one argument; `team`, which can
 either be the full name of a team (e.g. `"New Jersey Devils"`), or the
 **franchise Id** (e.g. `23` for the New Jersey Devils).
 
@@ -347,8 +348,8 @@ goalieRecords <- function(team){
 ## `skaterRecords`
 
 The `skaterRecords` function returns the stats for all the non-goalie
-players who’ve played for a single team. For example, the most penalty
-minutes they received in one season and the season the season it
+players who’ve played for a single franchise. For example, the most
+penalty minutes they received in one season and the season the season it
 occurred in. It takes one argument; `team`, which can either be the full
 name of a team (e.g. `"New Jersey Devils"`), or the **franchise Id**
 (e.g. `23` for the New Jersey Devils).
@@ -562,7 +563,7 @@ seasonStats <- function(team="all", raw=FALSE){
 ## `nhlAPI`
 
 This function is a wrapper function for all the others above. You simply
-pass the name of the function you want to use, like `"seasonStats`, and
+pass the name of the function you want to use, like `"seasonStats"`, and
 any additional arguments for that function.
 
 ``` r
@@ -637,7 +638,7 @@ the puck more than the other team and you have more scoring
 opportunities, unless you’re taking wild shots. Both stats seem like
 great proxies for offensive power.
 
-![](README_files/figure-gfm/unnamed-chunk-65-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 Below I plotted the win percentage against shots per game and shooting
 percentage. I added a regression line as well. As expected, both are
@@ -684,7 +685,7 @@ plot2 <- ggplot(currentSeason, aes(stat.shootingPctg,
 plot_grid(plot1, plot2, ncol=2)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-66-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 Now let’s look at shooting percentage vs. shots per game. I added a
 color gradient for the win percentage.
@@ -708,7 +709,7 @@ plot3 <- ggplot(currentSeason, aes(stat.shotsPerGame,
 plot3
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-67-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 There doesn’t appear to be a clear relationship between those two
 variables, which I thought there might be. Some interesting finds, but
@@ -909,7 +910,7 @@ plot4 <- ggplot(teamTotalStats,
 plot4
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-74-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
 
 There is definitely a difference in spread in win percentage between
 playoff and regular season games. Even if they are close in central
@@ -979,7 +980,7 @@ plot5 <- ggplot(teamTotalStats,aes(penaltyMinutesPerGame, y=..density..,
 plot5
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-76-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 I’m curious as to which teams spend the most time in the penalty box per
 game. I filtered for active teams and regular season games and made a
@@ -1024,7 +1025,7 @@ plot6 <- teamTotalStats %>%
 plot6
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-77-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
 
 It seems the Philly Fliers are as rowdy as Philly sports fans. I
 produced the same bar plot again, but this time for playoff games. I
@@ -1060,7 +1061,7 @@ plot7 <- teamTotalStats %>%
 plot7
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-78-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
 The order did not change much, so there is a correlation between regular
 season penalty time and playoff penalty time. Let’s look at a scatter
@@ -1092,7 +1093,7 @@ plot8 <- teamTotalStats %>%
 plot8
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-79-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
 
 Although the positive correlation is not very surprising, I did not
 expect the correlation to be that tight.
@@ -1133,7 +1134,7 @@ plot9 <- teamTotalStats %>%
 plot9
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-80-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
 
 As you can see, the relationship between the win percentage and penalty
 minutes per game is not exactly tidy, but there does seem to be a

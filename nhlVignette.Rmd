@@ -5,6 +5,7 @@ date: "6/15/2021"
 output: 
   github_document:
     toc: true
+    html_preview: false
 ---
 
 ```{r setup, include=FALSE}
@@ -177,7 +178,7 @@ teamTotals <- function(team="all"){
 
 ## `findId`
 
-This is a helper function to look up the most recent team Id or franchise Id for a full team name (e.g. `findId("Boston Bruins", "team"` or `findId("Boston Bruins", "franchise"`). It is used to find the appropriate Id number for a API endpoint.
+This is a helper function to look up the most recent team Id or franchise Id for a full team name (e.g. `findId("Boston Bruins", "team")` or `findId("Boston Bruins", "franchise")`). It is used to find the appropriate Id number for a API endpoint.
 
 ```{r}
 findId <- function(teamName, idType){
@@ -206,7 +207,7 @@ findId <- function(teamName, idType){
 
 ## `seasonRecords`
 
-The `seasonRecords` function returns the records stats for a single team. For example, the most goals scored in a season and the season they scored it in. It takes one argument; `team`, which can either be the full name of a team (e.g. `"New Jersey Devils"`), or the **franchise Id** (e.g. `23` for the New Jersey Devils).
+The `seasonRecords` function returns the records stats for a single franchise. For example, the most goals scored in a season and the season they scored it in. It takes one argument; `team`, which can either be the full name of a team (e.g. `"New Jersey Devils"`), or the **franchise Id** (e.g. `23` for the New Jersey Devils).
 
 ```{r}
 seasonRecords <- function(team){
@@ -250,7 +251,7 @@ seasonRecords <- function(team){
 
 ## `goalieRecords`
 
-The `goalieRecords` function returns the stats for all the goalies who've played for a single team. For example, the most saves in a game and the date of the game. It takes one argument; `team`, which can either be the full name of a team (e.g. `"New Jersey Devils"`), or the **franchise Id** (e.g. `23` for the New Jersey Devils).
+The `goalieRecords` function returns the stats for all the goalies who've played for a single franchise. For example, the most saves in a game and the date of the game. It takes one argument; `team`, which can either be the full name of a team (e.g. `"New Jersey Devils"`), or the **franchise Id** (e.g. `23` for the New Jersey Devils).
 
 ```{r}
 goalieRecords <- function(team){
@@ -293,7 +294,7 @@ goalieRecords <- function(team){
 
 ## `skaterRecords`
 
-The `skaterRecords` function returns the stats for all the non-goalie players who've played for a single team. For example, the most penalty minutes they received in one season and the season the season it occurred in. It takes one argument; `team`, which can either be the full name of a team (e.g. `"New Jersey Devils"`), or the **franchise Id** (e.g. `23` for the New Jersey Devils).
+The `skaterRecords` function returns the stats for all the non-goalie players who've played for a single franchise. For example, the most penalty minutes they received in one season and the season the season it occurred in. It takes one argument; `team`, which can either be the full name of a team (e.g. `"New Jersey Devils"`), or the **franchise Id** (e.g. `23` for the New Jersey Devils).
 
 ```{r}
 skaterRecords <- function(team){
@@ -497,7 +498,7 @@ seasonStats <- function(team="all", raw=FALSE){
 
 ## `nhlAPI`
 
-This function is a wrapper function for all the others above. You simply pass the name of the function you want to use, like `"seasonStats`, and any additional arguments for that function.
+This function is a wrapper function for all the others above. You simply pass the name of the function you want to use, like `"seasonStats"`, and any additional arguments for that function.
 
 ```{r}
 nhlAPI <- function(func, ...){
