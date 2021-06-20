@@ -810,7 +810,7 @@ knitr::kable(penMinSumm,
              digits=2)
 ```
 
-The histogram below provides an alternative to the box plot for visualizing the distribution of a penalty minutes per game. It's clear the penalty minutes per playoff game has a right tail stretching beyond regular season games.
+The histogram below provides an alternative to the box plot for visualizing the distribution of penalty minutes per game. It's clear the penalty minutes per playoff game has a right tail stretching beyond regular season games.
 
 ```{r}
 # Make a histogram of penalty minutes per game by game type.

@@ -944,8 +944,8 @@ knitr::kable(penMinSumm,
 Summary Statistics for Penalty Minutes per Game by Game Type
 
 The histogram below provides an alternative to the box plot for
-visualizing the distribution of a penalty minutes per game. It’s clear
-the penalty minutes per playoff game has a right tail stretching beyond
+visualizing the distribution of penalty minutes per game. It’s clear the
+penalty minutes per playoff game has a right tail stretching beyond
 regular season games.
 
 ``` r
