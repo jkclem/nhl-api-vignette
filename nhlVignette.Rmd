@@ -689,7 +689,7 @@ activeTeams <- teamTotalStats %>%
 # Display a table of the game types by record types for active teams.
 knitr::kable(table(activeTeams$gameType, activeTeams$recordType),
              caption=paste("Counts of Franchise Record Types by Game Type",
-                           "for Active Franchises"))
+                           "for Active Teams"))
 ```
 
 Below is the same table for inactive teams. It's clear from these tables that the inactive teams were much worse than the teams that are still active. They probably had a difficult time bringing in an audience and selling merchandise because they were so bad. That is likely why they are no longer around. 
@@ -730,7 +730,7 @@ inactiveTeams[currentEndRow+seq(numDidntMakePlayoffs),
 # Display a table of the game types by record types for inactive teams.
 knitr::kable(table(inactiveTeams$gameType, inactiveTeams$recordType),
              caption=paste("Counts of Franchise Record Types by Game Type",
-                           "for Inactive Franchises"))
+                           "for Inactive Teams"))
 ```
 
 For now, I will keep both inactive and active teams in the data set. Now let's get a numerical summary of the win percentage by the game type.
