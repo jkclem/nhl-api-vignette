@@ -5,7 +5,7 @@ date: "6/15/2021"
 output: 
   html_document:
     toc: true
-    code_folding: hide
+    code_folding: show
 ---
 
 ```{r setup, include=FALSE}
@@ -16,22 +16,20 @@ This document is a vignette to show how to retrieve data from an [API](https://e
 
 As a note, some of these functions return data at a team level. Some of the APIs use the franchise ID number, while some use the most recent team ID to select a specific team's endpoint. For that reason, if you use any of my functions I recommend supplying a full team name (e.g. `"Montréal Canadiens"`). My functions will decode them to the appropriate ID number.
 
-[Link to the project github repo.](https://github.com/jkclem/nhl-api-vignette)
-
 # Requirements
 
-To use the functions for interacting with the NHL API, you need to install and load:
+To use the functions for interacting with the NHL API, I used the following packages:
 
-- [`tidyverse`](https://www.tidyverse.org/): tons of useful features for data manipulation and plotting
+- [`tidyverse`](https://www.tidyverse.org/): tons of useful features for data manipulation and visualization
 - [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/): API interaction
 
-Additionally, I used the following packages for the rest of the document:
+In addition to those packages, I used the following packages in the rest of the document:
 
 - [`cowplot`](https://cran.r-project.org/web/packages/cowplot/index.html): extra functionality for `ggplot2`
-- [`imager`](https://cran.r-project.org/web/packages/imager/): loading in an images
-- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html): displaying tables
+- [`imager`](https://cran.r-project.org/web/packages/imager/): loading in images
 - [`broom`](https://cran.r-project.org/web/packages/broom/vignettes/broom.html):
 tidying up a regression output for display
+- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html): displaying tables
 
 ```{r warning=FALSE, message=FALSE}
 # Load in the packages.
@@ -73,7 +71,7 @@ convertToNumeric <- function(vec){
 
 ## `franchise`
 
-I wrote this function to interact with the `franchise` endpoint of the NHL Records API. It returns a `data.frame` containing the franchise and current team Id numbers, the name and abbreviations of teams, and their first and last seasons. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
+I wrote this function to interact with the `franchise` endpoint of the NHL Records API. It returns a `data.frame` containing the franchise and current team Id numbers, the name and abbreviations of teams, and their first and last seasons. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the **most recent team Id** (e.g. `1` for the New Jersey Devils).
 
 ```{r}
 franchise <- function(team="all"){
@@ -127,7 +125,7 @@ franchise <- function(team="all"){
 
 ## `teamTotals`
 
-I wrote this function to interact with the `franchise-team-totals` endpoint of the NHL Records API. It returns a large number of statistics for the entire history of a team for both regular season and playoff games. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
+I wrote this function to interact with the `franchise-team-totals` endpoint of the NHL Records API. It returns a large number of statistics for the entire history of a team for both regular season and playoff games. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the **most recent team Id** (e.g. `1` for the New Jersey Devils).
 
 ```{r}
 teamTotals <- function(team="all"){
@@ -168,7 +166,6 @@ teamTotals <- function(team="all"){
   }
   # Do nothing if the team value equals "all".
   else {
-    
   }
   
   # Convert any columns that should be numeric to numeric values.
@@ -181,7 +178,7 @@ teamTotals <- function(team="all"){
 
 ## `findId`
 
-This is a helper function to look up the most recent team Id or franchise Id for a full team name (e.g. `"Boston Bruins"`). It is used to find the appropriate Id number for a API endpoint.
+This is a helper function to look up the most recent team Id or franchise Id for a full team name (e.g. `findId("Boston Bruins", "team"` or `findId("Boston Bruins", "franchise"`). It is used to find the appropriate Id number for a API endpoint.
 
 ```{r}
 findId <- function(teamName, idType){
@@ -200,7 +197,7 @@ findId <- function(teamName, idType){
   }
   # Any other argument throws an error.
   else {
-    stop("Invalid idType argument! Should be 'franchise' or 'team'!")
+    stop("ERROR: Invalid idType argument! Should be 'franchise' or 'team'!")
   }
   # Return the appropriate Id.
   return(output)
@@ -229,8 +226,8 @@ seasonRecords <- function(team){
   }
   # Otherwise, throw an error.
   else {
-    message <- paste("Please pass a franchise id (integer) or a full team name",
-                     "e.g. 'Boston Bruins'.")
+    message <- paste("ERROR: Please pass a franchise id (integer) or a full",
+                     "team name (e.g. 'Boston Bruins').")
     stop(message)
   }
   
@@ -241,7 +238,7 @@ seasonRecords <- function(team){
   
   # Get the API output.
   outputAPI <- fromJSON(fullURL)
-  # Select only the data.
+  # Select only the data from the API output.
   output <- outputAPI$data
   
   # Convert any columns that should be numeric to numeric format.
@@ -272,8 +269,8 @@ goalieRecords <- function(team){
   }
   # Otherwise, throw an error.
   else {
-    message <- paste("Please pass a franchise id (integer) or a full team name",
-                     "e.g. 'Boston Bruins'.")
+    message <- paste("ERROR: Please pass a franchise id (integer) or a full",
+                     "team name (e.g. 'Boston Bruins').")
     stop(message)
   }
   
@@ -315,8 +312,8 @@ skaterRecords <- function(team){
   }
   # Otherwise, throw an error.
   else {
-    message <- paste("Please pass a franchise id (integer) or a full team name",
-                     "e.g. 'Boston Bruins'.")
+    message <- paste("ERROR: Please pass a franchise id (integer) or a full",
+                     "team name (e.g. 'Boston Bruins').")
     stop(message)
   }
   
@@ -340,7 +337,7 @@ skaterRecords <- function(team){
 
 ## `franchiseDetail`
 
-This function gets info for a franchise, like their retired numbers. It takes one argument; `team`, which can either be the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
+This function gets info for a franchise, like their retired numbers. It takes one argument; `team`, which can either be the full name of a team (e.g. `"New Jersey Devils"`), or the **most recent team Id** (e.g. `1` for the New Jersey Devils).
 
 ```{r}
 franchiseDetail <- function(team){
@@ -358,8 +355,8 @@ franchiseDetail <- function(team){
   }
   # Otherwise, throw an error.
   else {
-    message <- paste("Please pass a team id (integer) or a full team name",
-                     "e.g. 'Boston Bruins'.")
+    message <- paste("ERROR: Please pass a team id (integer) or a full",
+                     "team name (e.g. 'Boston Bruins').")
     stop(message)
   }
   
@@ -383,7 +380,7 @@ franchiseDetail <- function(team){
 
 ## `seasonStats`
 
-This function returns a `data.frame` containing stats for the current season. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the most recent team Id (e.g. `1` for the New Jersey Devils).
+This function returns a `data.frame` containing stats for the current season. It takes one argument; `team`, which can either be `"all"`, the full name of a team (e.g. `"New Jersey Devils"`), or the **most recent team Id** (e.g. `1` for the New Jersey Devils).
 
 ```{r}
 seasonStats <- function(team="all", raw=FALSE){
@@ -395,7 +392,7 @@ seasonStats <- function(team="all", raw=FALSE){
   
   # If raw is not a valid input, throw an error.
   if ((raw != TRUE) & (raw != FALSE)){
-    stop("raw must equal TRUE or FALSE!")
+    stop("ERROR: Argument for raw must equal TRUE or FALSE!")
   }
   # Otherwise do nothing.
   else {
@@ -416,8 +413,8 @@ seasonStats <- function(team="all", raw=FALSE){
   }
   # Otherwise, throw an error.
   else {
-    message <- paste("Please pass a team id (integer) or a full team name",
-                     "e.g. 'Boston Bruins'.")
+    message <- paste("ERROR: Please pass a team id (integer) or a full",
+                     "team name (e.g. 'Boston Bruins').")
     stop(message)
   }
   
@@ -493,7 +490,7 @@ nhlAPI <- function(func, ...){
   # function.
   ###
   
-  # Find and call the appropriate function.
+  # Find and call the appropriate function using conditional logic.
   
   if (func == "franchise"){
     output <- franchise(...)
@@ -517,7 +514,7 @@ nhlAPI <- function(func, ...){
     output <- seasonStats(...)
   }
   else {
-    stop("Argument for func is not valid!")
+    stop("ERROR: Argument for func is not valid!")
   }
   
   # Return the output from the appropriate function.
@@ -547,7 +544,7 @@ currentSeason <- currentSeason %>%
 
 My guess is these two are positively related to the win percentage. A high shooting percentage means you are fairly likely to score when you shoot. A high number of shots per game likely means you are controlling the puck more than the other team and you have more scoring opportunities, unless you're taking wild shots. Both stats seem like great proxies for offensive power.
 
-```{r}
+```{r echo=FALSE}
 # Read in the image.
 img <- load.image("./images/Wayne Gretzky Quote.jpg")
 # Display the image.
@@ -644,7 +641,7 @@ numActive <- sum(teamStatus =="Active")
 numInactive <- sum(teamStatus =="Inactive")
 ```
 
-There are `r print(numInactive)` inactive and `r print(numActive)` active teams. Almost as many teams have left the NHL than are currently still playing.
+There are `r numInactive` inactive and `r numActive` active teams. Almost as many teams have left the NHL than are currently still playing.
 
 Not all the teams have been around for the same length of time and I want to adjust some stats to be able to compare teams on the same basis. I'm particularly interested in the penalty minutes and records of the teams.
 
@@ -744,7 +741,7 @@ knitr::kable(winPercSumm,
              digits=2)
 ```
 
-Based on the summary stats, the distributions don't seem very different, although win percentages in the playoffs might be more variable. There is at least on franchise that never won a playoff game. Let's visualize the distributions with box plots.
+Based on the summary stats, the distributions don't seem very different, although win percentages in the playoffs might be more variable. There is at least one franchise that never won a playoff game. Let's visualize the distributions with box plots.
 
 ```{r}
 # Make a box plot of franchise win percentage by game type.
@@ -768,7 +765,7 @@ plot4 <- ggplot(teamTotalStats,
 plot4
 ```
 
-There is definitely a difference in spread in win percentage between playoff and regular season games. Even if they are close in central tendency, regular season win percentages are more tightly distributed.
+There is definitely a difference in spread in win percentage between playoff and regular season games. Even if they are close in central tendency, regular season win percentages are more tightly distributed. This is likely due to there being more regular season games than playoff games.
 
 Now let's look at a numeric summary of per game penalty minutes by game type. Playoff games seem to have a higher central tendency and be more variable in the penalty minutes per game.
 
@@ -908,7 +905,7 @@ plot8 <- teamTotalStats %>%
   # Add a red regression line.
   geom_smooth(method=lm, formula=y~x, color="red") +
   # Set the axes labels.
-  scale_x_continuous("Regular Penalty Min. per Game") +
+  scale_x_continuous("Regular Season Penalty Min. per Game") +
   scale_y_continuous("Playoffs Penalty Min. per Game") + 
   # Add a title.
   ggtitle("Playoff vs. Regular Season Penalty Min. Per Game (Active Teams)")
@@ -974,8 +971,13 @@ winPercMod %>%
   )
 ```
 
-Given the t-statistics for the quadratic term in the regression, a quadratic relationship appears reasonable. This model explains `r print(paste0(winVarExplainedPerc, "%"))` of the variation in win percentage, so there is still a fair amount of variance you would want to account for in a predictive model. Still, this is an interesting find!
+Given the t-statistics for the quadratic term in the regression, a quadratic relationship appears reasonable. This model explains `r winVarExplainedPerc`% of the variance in win percentage, so there is still a fair amount of variance you would want to account for in a predictive model. Still, this is an interesting find!
 
-# Conclusions
+# Wrap-Up
+
+To summarize everything I did in this vignette, I built functions to interact with some of the NHL API's endpoints, retrieved some of the data, and explored it using tables, numerical summaries, and data visualization. I found some unsurprising things, like shots per game and shooting percentage are related to win percentage. I also found some surprising things, namely penalty minutes per game has a quadratic relationship with win percentage.
+
+Most importantly, I hope my code helps you with interacting with APIs!
+
 
 
