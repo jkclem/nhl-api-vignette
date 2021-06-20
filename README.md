@@ -712,12 +712,12 @@ plot3
 ![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 There doesn’t appear to be a clear relationship between those two
-variables, which I thought there might be. Some interesting finds, but
-none unexpected.
+variables, which I thought there might be. Let’s look at data from
+another endpoint.
 
-Now let’s look at some stats for the total history of all teams who have
-played. Note that some of these teams belong to the same franchise. I
-treat teams that belong to the same franchise as separate (e.g. the
+Let’s get some stats for the total history of all teams who have played
+in the NHL. Note that some of these teams belong to the same franchise.
+I treat teams that belong to the same franchise as separate (e.g. the
 Colorado Rockies and the New Jersey Devils). I called
 `nhlAPI("teamTotals")` to get this data.
 
