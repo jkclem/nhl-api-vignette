@@ -965,7 +965,7 @@ plot9
 
 As you can see, the relationship between the win percentage and penalty minutes per game is not exactly tidy, but there does seem to be a quadratic relationship there. In regular season games, it seems like 15 minutes is an optimal amount of time to be in the penalty box with regards to the win percentage. For playoff games, it appears to be in the ballpark of 17 minutes.
 
-I do not know much about hockey, but it seems like there is a strategy to taking penalties, even if it gives the other team a power play opportunity. Let's test for the quadratic relationship a little more formally with a regression.
+It is a truism at this point that correlation does not mean causation. It is possible there is a strategy to taking penalties, even if it gives the other team a power play opportunity, similar to basketball. Or it can just be a byproduct of an optimally aggressive play style. Regardless, I want to test if the relationship is statistically significant. Let's test for the quadratic relationship a little more formally with a regression.
 
 ```{r}
 # Create a model regressing win percentage on penalty minutes per game.

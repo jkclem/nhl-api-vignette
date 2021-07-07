@@ -938,7 +938,7 @@ knitr::kable(penMinSumm,
 
 | gameType       | Min. | 1st Quartile | Median |  Mean | 3rd Quartile |   Max | Std. Dev. |
 |:---------------|-----:|-------------:|-------:|------:|-------------:|------:|----------:|
-| Playoffs       |  5.0 |        11.92 |  14.52 | 15.74 |        18.56 | 30.42 |      5.81 |
+| Playoffs       |  5.0 |        11.92 |  14.52 | 15.74 |        18.58 | 30.42 |      5.82 |
 | Regular Season |  4.5 |        10.72 |  13.13 | 13.00 |        15.26 | 21.51 |      3.64 |
 
 Summary Statistics for Penalty Minutes per Game by Game Type
@@ -1133,9 +1133,12 @@ minutes is an optimal amount of time to be in the penalty box with
 regards to the win percentage. For playoff games, it appears to be in
 the ballpark of 17 minutes.
 
-I do not know much about hockey, but it seems like there is a strategy
-to taking penalties, even if it gives the other team a power play
-opportunity. Let’s test for the quadratic relationship a little more
+It is a truism at this point that correlation does not mean causation.
+It is possible there is a strategy to taking penalties, even if it gives
+the other team a power play opportunity, similar to basketball. Or it
+can just be a byproduct of an optimally aggressive play style.
+Regardless, I want to test if the relationship is statistically
+significant. Let’s test for the quadratic relationship a little more
 formally with a regression.
 
 ``` r
@@ -1168,15 +1171,15 @@ knitr::kable(
 
 | Variable                  | Est. Coef. |    SE |     t | P(\|t\| &gt; 0) |
 |:--------------------------|-----------:|------:|------:|----------------:|
-| Intercept                 |       0.41 | 0.011 | 36.65 |           0.000 |
-| Penalty Min. per Game     |       0.20 | 0.114 |  1.74 |           0.085 |
-| (Penalty Min. per Game)^2 |      -0.62 | 0.114 | -5.39 |           0.000 |
+| Intercept                 |       0.41 | 0.011 | 36.66 |           0.000 |
+| Penalty Min. per Game     |       0.20 | 0.114 |  1.73 |           0.086 |
+| (Penalty Min. per Game)^2 |      -0.61 | 0.114 | -5.38 |           0.000 |
 
 Coefficient summary of Win Perc. Regressed on Penalty Min. per Game with
 Quadratic Term
 
 Given the t-statistics for the quadratic term in the regression, a
-quadratic relationship appears reasonable. This model explains 23.9% of
+quadratic relationship appears reasonable. This model explains 23.8% of
 the variance in win percentage, so there is still a fair amount of
 variance you would want to account for in a predictive model. Still,
 this is an interesting find!
